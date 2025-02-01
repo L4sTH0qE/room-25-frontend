@@ -4,6 +4,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 import {BrowserRouter} from "react-router-dom";
+import App from "./App";
+import BackgroundMusic from "./components/BackgroundMusic";
 
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -11,6 +13,8 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
     <BrowserRouter basename={baseUrl}>
         <React.StrictMode>
+            <App/>
+            <BackgroundMusic/>
         </React.StrictMode>
     </BrowserRouter>
 )
