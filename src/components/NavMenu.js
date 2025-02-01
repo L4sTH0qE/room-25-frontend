@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import {Collapse, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink} from 'reactstrap';
 import {Link} from 'react-router-dom';
 import './NavMenu.css';
-import brand from '../assets/images/brand.png'
+import brand from '../assets/images/icons/brand.png'
 
 /**
  * Class component that describes navigation menu.

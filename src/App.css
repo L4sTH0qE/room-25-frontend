@@ -96,3 +96,21 @@ li {
 .sgn-btn:hover {
     box-shadow: 0 0 30px #4b8493;
 }
+
+.msc-btn {
+    display: flex;
+    position: fixed;
+    bottom: 5%;
+    right: 5%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    z-index: 10;
+}
+
+.msc-btn img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}

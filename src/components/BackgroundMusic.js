@@ -1,5 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import mainTheme from '../assets/sounds/room_25_main_theme.mp3'
+import pauseIcon from '../assets/images/icons/unmute_speaker_5.png'
+import playIcon from '../assets/images/icons/mute_speaker_5.png'
 
 const BackgroundMusic = () => {
     const audioRef = useRef(null);
@@ -7,7 +9,7 @@ const BackgroundMusic = () => {
 
     const togglePlay = () => {
         const audio = audioRef.current;
-        audio.volume = 0.25;
+        audio.volume = 0.1;
         if (isPlaying) {
             audio.pause();
         } else {
@@ -41,8 +43,8 @@ const BackgroundMusic = () => {
                 <source src={mainTheme} type="audio/mpeg"/>
                 Your browser does not support the audio tag.
             </audio>
-            <button onClick={togglePlay}>
-                {isPlaying ? 'Pause Music' : 'Play Music'}
+            <button className="msc-btn" onClick={togglePlay}>
+                <img src={isPlaying ? pauseIcon : playIcon} alt={isPlaying ? 'Pause' : 'Play'}/>
             </button>
         </div>
     );
