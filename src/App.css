@@ -1,38 +1,98 @@
 .App {
-  text-align: center;
+    text-align: center;
 }
 
 .App-logo {
-  height: 40vmin;
-  pointer-events: none;
+    height: 100vmin;
+    pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+    .App-logo {
+        animation: App-logo-spin infinite 20s linear;
+    }
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
+}
+
+.link-text {
+    font-size: 24px; /* Размер шрифта для текста */
+    color: white; /* Цвет текста */
+    text-decoration: none; /* Убираем подчеркивание */
+    padding: 10px; /* Отступы вокруг текста */
+    transition: color 0.3s; /* Плавный переход цвета */
+}
+
+.link-text:hover {
+    color: #61dafb; /* Цвет текста при наведении */
 }
 
 .App-link {
-  color: #61dafb;
+    color: #61dafb;
 }
 
 @keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+
+.white-text {
+    color: #f0f0f0;
+}
+
+.light-text {
+    color: lightblue;
+}
+
+.gray-text {
+    color: #909090;
+}
+
+body {
+    background-color: #191919;
+    font-family: 'Roboto', monospace;
+
+    background-image: url('assets/images/rules/1.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: top;
+    min-height: 100vh;
+}
+
+p {
+    font-size: 1.1em;
+}
+
+li {
+    font-size: 1.1em;
+}
+
+.start-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sgn-btn {
+    top: 90px;
+    width: 50vmin;
+    height: 60px;
+    box-shadow: 0 0 10px #000000;
+    transition: box-shadow 0.3s ease;
+}
+
+.sgn-btn:hover {
+    box-shadow: 0 0 30px #4b8493;
 }
