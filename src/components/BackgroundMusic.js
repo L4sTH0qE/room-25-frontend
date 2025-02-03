@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import mainTheme from '../assets/sounds/room_25_main_theme.mp3'
-import pauseIcon from '../assets/images/icons/unmute_speaker_5.png'
-import playIcon from '../assets/images/icons/mute_speaker_5.png'
+import pauseIcon from '../assets/images/icons/unmute_speaker.png'
+import playIcon from '../assets/images/icons/mute_speaker.png'
 
 const BackgroundMusic = () => {
     const audioRef = useRef(null);
