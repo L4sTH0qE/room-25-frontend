@@ -23,15 +23,15 @@
 }
 
 .link-text {
-    font-size: 24px; /* Размер шрифта для текста */
-    color: white; /* Цвет текста */
-    text-decoration: none; /* Убираем подчеркивание */
-    padding: 10px; /* Отступы вокруг текста */
-    transition: color 0.3s; /* Плавный переход цвета */
+    font-size: 24px;
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    transition: color 0.3s;
 }
 
 .link-text:hover {
-    color: #61dafb; /* Цвет текста при наведении */
+    color: #61dafb;
 }
 
 .App-link {
@@ -64,7 +64,7 @@ body {
     background-color: #191919;
     font-family: 'Roboto', monospace;
 
-    background-image: url('assets/images/rules/1.png');
+    background-image: url('assets/images/rules/ru/1.png');
     background-size: cover;
     background-repeat: no-repeat;
     background-position: top;
@@ -79,13 +79,19 @@ li {
     font-size: 1.1em;
 }
 
+h3 {
+    text-align:center;
+    margin-bottom: 50px;
+}
+
 .start-content {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.sgn-btn {
+.main-btn {
+    margin-top: 30px;
     top: 90px;
     width: 50vmin;
     height: 60px;
@@ -93,7 +99,7 @@ li {
     transition: box-shadow 0.3s ease;
 }
 
-.sgn-btn:hover {
+.main-btn:hover {
     box-shadow: 0 0 30px #4b8493;
 }
 
@@ -106,11 +112,46 @@ li {
     border: none;
     cursor: pointer;
     outline: none;
-    z-index: 10;
+    z-index: 1;
 }
 
 .msc-btn img {
     width: 100px;
     height: 100px;
     object-fit: cover;
+}
+
+.logout-btn {
+    display: flex;
+    position: fixed;
+    bottom: 5%;
+    left: 5%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    z-index: 1;
+}
+
+.logout-btn img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.logout-msg {
+    display: flex;
+    position: fixed;
+    bottom: 5%;
+    left: 5%;
+    margin-left: 120px;
+    margin-bottom: 30px;
+    border: none;
+    outline: none;
+    z-index: -1;
+    color: #f0f0f0;
+    font-family: 'Roboto', monospace;
+    font-size: 175%;
+    font-weight: bold;
+    text-shadow: 0 0 5px #e12025;
 }

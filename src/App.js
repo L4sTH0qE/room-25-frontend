@@ -1,9 +1,12 @@
 import React, {useEffect, useState,} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import {Route, Routes, useLocation, useNavigate} from 'react-router-dom';
 import {Button, Snackbar, Stack} from "@mui/material";
 import CustomDialog from "./components/CustomDialog";
 import CustomTextField from "./components/CustomTextField";
 import {lightBlue} from "@mui/material/colors";
+import WebSocketComponent from "./components/WebSocketComponent";
+import HomePageComponent from "./components/HomePageComponent";
+import logoutIcon from './assets/images/icons/logout.png'
 
 export default function App(props) {
     const [username, setUsername] = useState("");
@@ -18,12 +21,14 @@ export default function App(props) {
     const location = useLocation();
     const navigate = useNavigate();
 
-    /*    useEffect(() => {
-            if (location.pathname === "/room") {
-                navigate("/");
-            }
-        }, [location, navigate]);*/
+    // User log out function.
+    const logout = () => {
+        localStorage.removeItem('jwtToken');
+        setUserSubmitted(false);
+        navigate("/");
+    };
 
+    // Hook to get user jwtToken from local storage or check whether there is no one.
     useEffect(() => {
         const token = localStorage.getItem('jwtToken');
 
@@ -171,16 +176,19 @@ export default function App(props) {
 
     return (
         <>
-{/*            {location.pathname === "/game-options"  && usernameSubmitted ? <div className="bg"></div> : <div className="bg-main"></div>}
-            <Layout>
-                <Routes>
-                    <Route key={true} path='/' element={usernameSubmitted ? <Home username={username} wins={wins}/> : <> </>} />;
-                    <Route path='/rules' element={usernameSubmitted ? <Rules username={username}/> : <> </>} />;
-                    <Route path='/game-options' element={usernameSubmitted ? <InitGame username={username}/> : <> </>} />;
-                    <Route path='/game-room' element={usernameSubmitted ? <GameOptions username={username}/> : <> </>} />;
-                </Routes>
-            </Layout>*/}
-            {userSubmitted ? <></> :
+            <Routes>
+                <Route key={true} path='/' element={userSubmitted ? <HomePageComponent username={username}/> : <> </>}/>;
+                <Route path='/rules' element={userSubmitted ? <WebSocketComponent username={username}/> : <> </>}/>;
+                <Route path='/game-options'
+                       element={userSubmitted ? <WebSocketComponent username={username}/> : <> </>}/>;
+            </Routes>
+            {userSubmitted && location.pathname === "/" ?
+                <div>
+                    <button className="logout-btn" onClick={logout}>
+                        <img src={logoutIcon} alt={'Log Out'}/>
+                    </button>
+                    <p className="logout-msg">{username}</p>
+                </div> :
                 <div className="start-content">
                     <div>
                         <Stack
@@ -288,10 +296,10 @@ export default function App(props) {
                                     }
                                 />
                             </CustomDialog>
-
-                            <Button
-                                className="sgn-btn"
-                                sx={{ // Button to Log In.
+                            <br/>
+                            <Button // Button to Log In.
+                                className="main-btn"
+                                sx={{
                                     fontFamily: 'Roboto, monospace',
                                     fontSize: '150%',
                                     fontWeight: 'bold',
@@ -306,9 +314,9 @@ export default function App(props) {
                                 Log in
                             </Button>
                             <br/>
-                            <Button
-                                className="sgn-btn"
-                                sx={{ // Button to Sign Up.
+                            <Button // Button to Sign Up.
+                                className="main-btn"
+                                sx={{
                                     fontFamily: 'Roboto, monospace',
                                     fontSize: '150%',
                                     fontWeight: 'bold',
@@ -323,11 +331,11 @@ export default function App(props) {
                                 Sign up
                             </Button>
                         </Stack>
-                        <Snackbar
+                        <Snackbar // Sign Up snackbar
                             ContentProps={{
                                 style: {
-                                    backgroundColor: '#303030', // Задайте желаемый цвет фона
-                                    color: '#f0f0f0', // Задайте желаемый цвет текста
+                                    backgroundColor: '#303030',
+                                    color: '#f0f0f0',
                                     fontFamily: 'Roboto, monospace',
                                     fontSize: '110%',
                                     fontWeight: 'bold',
