@@ -15,6 +15,7 @@ const CustomDialog = ({open, children, title, contentText, handleClose, handleCo
         <Dialog
             // Global modal dialog rendering settings.
             open={open}
+            onClose={handleClose}
             sx={{
                 '& .MuiPaper-root': {
                     borderRadius: '16px',
@@ -61,7 +62,7 @@ const CustomDialog = ({open, children, title, contentText, handleClose, handleCo
                             color: '#f0f0f0',
                             backgroundColor: '#2e415f',
                             fontFamily: 'Roboto, monospace',
-                            fontSize: '120%',
+                            fontSize: '100%',
                             fontWeight: 'bold',
                             "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
                         }} onClick={handleClose}>Закрыть</Button>
@@ -73,7 +74,7 @@ const CustomDialog = ({open, children, title, contentText, handleClose, handleCo
                             color: '#f0f0f0',
                             backgroundColor: '#2e415f',
                             fontFamily: 'Roboto, monospace',
-                            fontSize: '120%',
+                            fontSize: '100%',
                             fontWeight: 'bold',
                             "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
                         }} onClick={handleContinue}>Продолжить</Button>

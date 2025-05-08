@@ -4,9 +4,11 @@ import {Button, Snackbar, Stack} from "@mui/material";
 import CustomDialog from "./components/CustomDialog";
 import CustomTextField from "./components/CustomTextField";
 import {lightBlue} from "@mui/material/colors";
-import WebSocketComponent from "./components/WebSocketComponent";
 import HomePageComponent from "./components/pages/HomePageComponent";
 import logoutIcon from './assets/images/icons/logout.png'
+import AboutPageComponent from "./components/pages/AboutPageComponent";
+import RulePageComponent from "./components/pages/RulePageComponent";
+import LobbyPageComponent from "./components/pages/LobbyPageComponent";
 
 export default function App(props) {
     const [username, setUsername] = useState("");
@@ -25,6 +27,10 @@ export default function App(props) {
     const logout = () => {
         localStorage.removeItem('jwtToken');
         setUserSubmitted(false);
+        navigate("/");
+    };
+
+    const onToHome = () => {
         navigate("/");
     };
 
@@ -178,176 +184,176 @@ export default function App(props) {
         <>
             <Routes>
                 <Route key={true} path='/' element={userSubmitted ? <HomePageComponent username={username}/> : <> </>}/>;
-                <Route path='/rules' element={userSubmitted ? <WebSocketComponent username={username}/> : <> </>}/>;
-                <Route path='/game-options'
-                       element={userSubmitted ? <WebSocketComponent username={username}/> : <> </>}/>;
+                <Route path='/rules' element={userSubmitted ? <RulePageComponent/> : <> </>}/>;
+                <Route path='/about' element={userSubmitted ? <AboutPageComponent/> : <> </>}/>;
+                <Route path='/lobby' element={userSubmitted ? <LobbyPageComponent/> : <> </>}/>;
             </Routes>
-            {userSubmitted && location.pathname === "/" ?
+            {userSubmitted && location.pathname !== "/game" ?
                 <div>
                     <button className="logout-btn" onClick={logout}>
                         <img src={logoutIcon} alt={'Log Out'}/>
                     </button>
                     <p className="logout-msg">{username}</p>
-                </div> :
-                <div className="start-content">
-                    <div>
-                        <Stack
-                            // Parameters for main content of start page.
-                            sx={{
-                                height: '100vh',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                py: 1,
-                            }}
-                        >
-                            <CustomDialog // Login Dialog.
-                                open={logIn} // leave open if username or password has not been selected
-                                title="Войти"
-                                contentText=""
-                                handleContinue={() => { // fired when Continue is clicked
-                                    if (!username || !password) return; // if username or password hasn't been entered, do nothing
-                                    checkLogInInput(username, password);
-                                }}
-                                handleClose={() => { // fired when Close is clicked
-                                    setLogIn(false);
-                                    setUsername("");
-                                    setPassword("");
+                </div> : !userSubmitted ?
+                    <div className="start-content">
+                        <div>
+                            <Stack
+                                // Parameters for main content of start page.
+                                sx={{
+                                    height: '100vh',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    py: 1,
                                 }}
                             >
-                                <CustomTextField  // Input for username.
-                                    autoFocus // automatically set focus on input (make it active).
-                                    margin="dense"
-                                    id="username"
-                                    label="Ник пользователя"
-                                    name="username"
-                                    value={username}
-                                    required
-                                    onChange={(e) => setUsername(e.target.value)} // update username state with value
-                                    type="text"
-                                    fullWidth
-                                    variant="standard"
-                                    error={Boolean(usernameError)}
-                                    helperText={
-                                        !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
-                                    }
-                                />
-                                <CustomTextField  // Input for password.
-                                    margin="dense"
-                                    id="password"
-                                    label="Пароль"
-                                    name="password"
-                                    value={password}
-                                    required
-                                    onChange={(e) => setPassword(e.target.value)} // update password state with value
-                                    type="password"
-                                    fullWidth
-                                    variant="standard"
-                                    error={Boolean(passwordError)}
-                                    helperText={
-                                        !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
-                                    }
-                                />
-                            </CustomDialog>
-                            <CustomDialog // Sign up Dialog.
-                                open={signUp} // leave open if username or password has not been selected
-                                title="Зарегистрироваться"
-                                contentText=""
-                                handleContinue={() => { // fired when Continue is clicked
-                                    if (!username || !password) return; // if username or password hasn't been entered, do nothing
-                                    checkSignUpInput(username, password);
+                                <CustomDialog // Login Dialog.
+                                    open={logIn} // leave open if username or password has not been selected
+                                    title="Войти"
+                                    contentText=""
+                                    handleContinue={() => { // fired when Continue is clicked
+                                        if (!username || !password) return; // if username or password hasn't been entered, do nothing
+                                        checkLogInInput(username, password);
+                                    }}
+                                    handleClose={() => { // fired when Close is clicked
+                                        setLogIn(false);
+                                        setUsername("");
+                                        setPassword("");
+                                    }}
+                                >
+                                    <CustomTextField  // Input for username.
+                                        autoFocus // automatically set focus on input (make it active).
+                                        margin="dense"
+                                        id="username"
+                                        label="Ник пользователя"
+                                        name="username"
+                                        value={username}
+                                        required
+                                        onChange={(e) => setUsername(e.target.value)} // update username state with value
+                                        type="text"
+                                        fullWidth
+                                        variant="standard"
+                                        error={Boolean(usernameError)}
+                                        helperText={
+                                            !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
+                                        }
+                                    />
+                                    <CustomTextField  // Input for password.
+                                        margin="dense"
+                                        id="password"
+                                        label="Пароль"
+                                        name="password"
+                                        value={password}
+                                        required
+                                        onChange={(e) => setPassword(e.target.value)} // update password state with value
+                                        type="password"
+                                        fullWidth
+                                        variant="standard"
+                                        error={Boolean(passwordError)}
+                                        helperText={
+                                            !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
+                                        }
+                                    />
+                                </CustomDialog>
+                                <CustomDialog // Sign up Dialog.
+                                    open={signUp} // leave open if username or password has not been selected
+                                    title="Зарегистрироваться"
+                                    contentText=""
+                                    handleContinue={() => { // fired when Continue is clicked
+                                        if (!username || !password) return; // if username or password hasn't been entered, do nothing
+                                        checkSignUpInput(username, password);
+                                    }}
+                                    handleClose={() => { // fired when Close is clicked
+                                        setSignUp(false);
+                                        setUsername("");
+                                        setPassword("");
+                                    }}
+                                >
+                                    <CustomTextField  // Input for username.
+                                        autoFocus // automatically set focus on input (make it active).
+                                        margin="dense"
+                                        id="username"
+                                        label="Ник пользователя"
+                                        name="username"
+                                        value={username}
+                                        required
+                                        onChange={(e) => setUsername(e.target.value)} // update username state with value
+                                        type="text"
+                                        fullWidth
+                                        variant="standard"
+                                        error={Boolean(usernameError)}
+                                        helperText={
+                                            !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
+                                        }
+                                    />
+                                    <CustomTextField  // Input for password.
+                                        margin="dense"
+                                        id="password"
+                                        label="Пароль"
+                                        name="password"
+                                        value={password}
+                                        required
+                                        onChange={(e) => setPassword(e.target.value)} // update password state with value
+                                        type="password"
+                                        fullWidth
+                                        variant="standard"
+                                        error={Boolean(passwordError)}
+                                        helperText={
+                                            !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
+                                        }
+                                    />
+                                </CustomDialog>
+                                <Button // Button to Log In.
+                                    className="main-btn"
+                                    sx={{
+                                        fontFamily: 'Roboto, monospace',
+                                        fontSize: '150%',
+                                        fontWeight: 'bold',
+                                        color: lightBlue["50"],
+                                        backgroundColor: '#202020',
+                                        "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
+                                    }}
+                                    variant="text"
+                                    onClick={() => {
+                                        setLogIn(true);
+                                    }}>
+                                    Войти
+                                </Button>
+                                <br/>
+                                <Button // Button to Sign Up.
+                                    className="main-btn"
+                                    sx={{
+                                        fontFamily: 'Roboto, monospace',
+                                        fontSize: '150%',
+                                        fontWeight: 'bold',
+                                        color: lightBlue["50"],
+                                        backgroundColor: '#202020',
+                                        "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
+                                    }}
+                                    variant="text"
+                                    onClick={() => {
+                                        setSignUp(true);
+                                    }}>
+                                    Зарегистрироваться
+                                </Button>
+                            </Stack>
+                            <Snackbar // Sign Up snackbar
+                                ContentProps={{
+                                    style: {
+                                        backgroundColor: '#303030',
+                                        color: '#f0f0f0',
+                                        fontFamily: 'Roboto, monospace',
+                                        fontSize: '110%',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 0 10px #000000',
+                                    },
                                 }}
-                                handleClose={() => { // fired when Close is clicked
-                                    setSignUp(false);
-                                    setUsername("");
-                                    setPassword("");
-                                }}
-                            >
-                                <CustomTextField  // Input for username.
-                                    autoFocus // automatically set focus on input (make it active).
-                                    margin="dense"
-                                    id="username"
-                                    label="Ник пользователя"
-                                    name="username"
-                                    value={username}
-                                    required
-                                    onChange={(e) => setUsername(e.target.value)} // update username state with value
-                                    type="text"
-                                    fullWidth
-                                    variant="standard"
-                                    error={Boolean(usernameError)}
-                                    helperText={
-                                        !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
-                                    }
-                                />
-                                <CustomTextField  // Input for password.
-                                    margin="dense"
-                                    id="password"
-                                    label="Пароль"
-                                    name="password"
-                                    value={password}
-                                    required
-                                    onChange={(e) => setPassword(e.target.value)} // update password state with value
-                                    type="password"
-                                    fullWidth
-                                    variant="standard"
-                                    error={Boolean(passwordError)}
-                                    helperText={
-                                        !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
-                                    }
-                                />
-                            </CustomDialog>
-                            <Button // Button to Log In.
-                                className="main-btn"
-                                sx={{
-                                    fontFamily: 'Roboto, monospace',
-                                    fontSize: '150%',
-                                    fontWeight: 'bold',
-                                    color: lightBlue["50"],
-                                    backgroundColor: '#202020',
-                                    "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
-                                }}
-                                variant="text"
-                                onClick={() => {
-                                    setLogIn(true);
-                                }}>
-                                Войти
-                            </Button>
-                            <br/>
-                            <Button // Button to Sign Up.
-                                className="main-btn"
-                                sx={{
-                                    fontFamily: 'Roboto, monospace',
-                                    fontSize: '150%',
-                                    fontWeight: 'bold',
-                                    color: lightBlue["50"],
-                                    backgroundColor: '#202020',
-                                    "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
-                                }}
-                                variant="text"
-                                onClick={() => {
-                                    setSignUp(true);
-                                }}>
-                                Зарегистрироваться
-                            </Button>
-                        </Stack>
-                        <Snackbar // Sign Up snackbar
-                            ContentProps={{
-                                style: {
-                                    backgroundColor: '#303030',
-                                    color: '#f0f0f0',
-                                    fontFamily: 'Roboto, monospace',
-                                    fontSize: '110%',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 0 10px #000000',
-                                },
-                            }}
-                            open={userRegistered}
-                            autoHideDuration={5000}
-                            onClose={() => setUserRegistered(false)}
-                            message="Регистрация прошла успешно. Теперь вы можете войти!"
-                        />
-                    </div>
-                </div>
+                                open={userRegistered}
+                                autoHideDuration={5000}
+                                onClose={() => setUserRegistered(false)}
+                                message="Регистрация прошла успешно. Теперь вы можете войти!"
+                            />
+                        </div>
+                    </div> : <div></div>
             }
         </>
     );
