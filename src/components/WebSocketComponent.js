@@ -1,24 +1,31 @@
 import React, {useEffect, useState} from 'react';
 import {Stomp} from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import {useNavigate} from "react-router-dom";
 
 const WebSocketComponent = () => {
     const [messages, setMessages] = useState([]);
     const [stompClient, setStompClient] = useState(null);
     const [inputMessage, setInputMessage] = useState('');
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         // Создаем SockJS соединение
-        const socket = new SockJS('http://localhost:8080/portfolio'); // Убедитесь, что порт соответствует вашему бэкенду
+        const socket = new SockJS('http://localhost:8080/portfolio');
 
         // Создаем STOMP клиент
         const client = Stomp.over(socket);
-
+        const token = localStorage.getItem('jwtToken');
+        console.log(`Token: ${token}`);
+        if (!token) {
+            navigate("/");
+        }
         // Подключаемся к серверу
         client.connect(
-            {Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBbGV4YW5kZXIiLCJpYXQiOjE3MzcwOTg4MTAsImV4cCI6MTczNzE4NTIxMH0.MjuSWgch-qbdfwcCZ9HWmbwgXXhTaWQPDEschc27uWs"},
+            {Authorization: `Bearer ${token}`},
             (frame) => {
-                console.log('Connected: ' + frame);
+                console.log(`Connected: ${frame}`);
 
                 // Подписываемся на топик
                 client.subscribe('/topic/your-topic', (message) => {

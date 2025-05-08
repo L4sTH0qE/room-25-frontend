@@ -5,7 +5,7 @@ import './index.css';
 import reportWebVitals from './reportWebVitals';
 import {BrowserRouter} from "react-router-dom";
 import App from "./App";
-import BackgroundMusic from "./components/BackgroundMusic";
+import BackgroundMusic from "./components/music/BackgroundMusic";
 
 const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href');
 const root = ReactDOM.createRoot(document.getElementById('root'));

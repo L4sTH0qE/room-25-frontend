@@ -5,7 +5,7 @@ import CustomDialog from "./components/CustomDialog";
 import CustomTextField from "./components/CustomTextField";
 import {lightBlue} from "@mui/material/colors";
 import WebSocketComponent from "./components/WebSocketComponent";
-import HomePageComponent from "./components/HomePageComponent";
+import HomePageComponent from "./components/pages/HomePageComponent";
 import logoutIcon from './assets/images/icons/logout.png'
 
 export default function App(props) {
@@ -88,14 +88,14 @@ export default function App(props) {
         } catch (error) {
             console.error("Error during authorization:", error);
             if (error.message === "no user found with such username") {
-                setUsernameError(error.message);
+                setUsernameError("пользователя с таким ником не существует");
                 setPasswordError("")
             } else if (error.message === "password is incorrect") {
                 setUsernameError("");
-                setPasswordError(error.message)
+                setPasswordError("неверный пароль")
             } else {
-                setUsernameError("must be not blank string");
-                setPasswordError("must be between 8-64 characters and contain uppercase letter, lowercase letter, number and special character");
+                setUsernameError("не должен быть пустой строкой и содержать буквы, отличные от латинских");
+                setPasswordError("должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ");
             }
         }
     }
@@ -117,11 +117,11 @@ export default function App(props) {
         } catch (error) {
             console.error("Error during registration:", error);
             if (error.message === "username is already in use") {
-                setUsernameError(error.message);
+                setUsernameError("данный ник уже занят");
                 setPasswordError("")
             } else {
-                setUsernameError("must be not blank string");
-                setPasswordError("must be between 8-64 characters and contain uppercase letter, lowercase letter, number and special character");
+                setUsernameError("не должен быть пустой строкой и содержать буквы, отличные от латинских");
+                setPasswordError("должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ");
             }
         }
     }
@@ -202,7 +202,7 @@ export default function App(props) {
                         >
                             <CustomDialog // Login Dialog.
                                 open={logIn} // leave open if username or password has not been selected
-                                title="Log In"
+                                title="Войти"
                                 contentText=""
                                 handleContinue={() => { // fired when Continue is clicked
                                     if (!username || !password) return; // if username or password hasn't been entered, do nothing
@@ -218,7 +218,7 @@ export default function App(props) {
                                     autoFocus // automatically set focus on input (make it active).
                                     margin="dense"
                                     id="username"
-                                    label="Username"
+                                    label="Ник пользователя"
                                     name="username"
                                     value={username}
                                     required
@@ -228,13 +228,13 @@ export default function App(props) {
                                     variant="standard"
                                     error={Boolean(usernameError)}
                                     helperText={
-                                        !usernameError ? "must be not blank string" : `${usernameError}`
+                                        !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
                                     }
                                 />
                                 <CustomTextField  // Input for password.
                                     margin="dense"
                                     id="password"
-                                    label="Password"
+                                    label="Пароль"
                                     name="password"
                                     value={password}
                                     required
@@ -244,13 +244,13 @@ export default function App(props) {
                                     variant="standard"
                                     error={Boolean(passwordError)}
                                     helperText={
-                                        !passwordError ? "must be between 8-64 characters and contain uppercase letter, lowercase letter, number and special character" : `${passwordError}`
+                                        !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
                                     }
                                 />
                             </CustomDialog>
                             <CustomDialog // Sign up Dialog.
                                 open={signUp} // leave open if username or password has not been selected
-                                title="Sign Up"
+                                title="Зарегистрироваться"
                                 contentText=""
                                 handleContinue={() => { // fired when Continue is clicked
                                     if (!username || !password) return; // if username or password hasn't been entered, do nothing
@@ -266,7 +266,7 @@ export default function App(props) {
                                     autoFocus // automatically set focus on input (make it active).
                                     margin="dense"
                                     id="username"
-                                    label="Username"
+                                    label="Ник пользователя"
                                     name="username"
                                     value={username}
                                     required
@@ -276,13 +276,13 @@ export default function App(props) {
                                     variant="standard"
                                     error={Boolean(usernameError)}
                                     helperText={
-                                        !usernameError ? "must be not blank string" : `${usernameError}`
+                                        !usernameError ? "не должен быть пустой строкой и содержать буквы, отличные от латинских" : `${usernameError}`
                                     }
                                 />
                                 <CustomTextField  // Input for password.
                                     margin="dense"
                                     id="password"
-                                    label="Password"
+                                    label="Пароль"
                                     name="password"
                                     value={password}
                                     required
@@ -292,11 +292,10 @@ export default function App(props) {
                                     variant="standard"
                                     error={Boolean(passwordError)}
                                     helperText={
-                                        !passwordError ? "must be between 8-64 characters and contain uppercase letter, lowercase letter, number and special character" : `${passwordError}`
+                                        !passwordError ? "должен быть длиной от 8 до 64 символов и содержать строчную и заглавную латинские буквы, цифру и специальный символ" : `${passwordError}`
                                     }
                                 />
                             </CustomDialog>
-                            <br/>
                             <Button // Button to Log In.
                                 className="main-btn"
                                 sx={{
@@ -311,7 +310,7 @@ export default function App(props) {
                                 onClick={() => {
                                     setLogIn(true);
                                 }}>
-                                Log in
+                                Войти
                             </Button>
                             <br/>
                             <Button // Button to Sign Up.
@@ -328,7 +327,7 @@ export default function App(props) {
                                 onClick={() => {
                                     setSignUp(true);
                                 }}>
-                                Sign up
+                                Зарегистрироваться
                             </Button>
                         </Stack>
                         <Snackbar // Sign Up snackbar
@@ -345,7 +344,7 @@ export default function App(props) {
                             open={userRegistered}
                             autoHideDuration={5000}
                             onClose={() => setUserRegistered(false)}
-                            message="Registration successful. You can authorize now!"
+                            message="Регистрация прошла успешно. Теперь вы можете войти!"
                         />
                     </div>
                 </div>

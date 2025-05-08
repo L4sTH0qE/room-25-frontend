@@ -64,7 +64,7 @@ const CustomDialog = ({open, children, title, contentText, handleClose, handleCo
                             fontSize: '120%',
                             fontWeight: 'bold',
                             "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
-                        }} onClick={handleClose}>Close</Button>
+                        }} onClick={handleClose}>Закрыть</Button>
                     <Button
                         // Continue Button settings.
                         sx={{
@@ -76,7 +76,7 @@ const CustomDialog = ({open, children, title, contentText, handleClose, handleCo
                             fontSize: '120%',
                             fontWeight: 'bold',
                             "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
-                        }} onClick={handleContinue}>Continue</Button>
+                        }} onClick={handleContinue}>Продолжить</Button>
                 </Box>
             </DialogActions>
         </Dialog>
