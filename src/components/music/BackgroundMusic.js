@@ -23,7 +23,7 @@ const BackgroundMusic = () => {
 
     useEffect(() => {
         const audio = audioRef.current;
-
+        if (!audio) return;
 
         // Устанавливаем событие на завершение трека для повторного воспроизведения
         const handleEnded = () => {

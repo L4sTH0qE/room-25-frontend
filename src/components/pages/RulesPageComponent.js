@@ -28,7 +28,7 @@ import {lightBlue} from "@mui/material/colors";
 /**
  * Functional component that describes Rules page.
  */
-export default function RulePageComponent() {
+export default function RulesPageComponent() {
     const [openRules, setOpenRules] = useState(true);
     const navigate = useNavigate();
 
@@ -127,7 +127,7 @@ export default function RulePageComponent() {
                             </Typography>
                             <Typography sx={{fontFamily: 'Roboto, monospace', mb: 3}}>
                                 Найти выход — комнату 25 — и выбраться всей командой до конца последнего раунда.<br/>
-                                В некоторых режимах среди игроков могут быть тайные предатели!
+                                В режиме Подозрение среди игроков могут быть тайные предатели!
                             </Typography>
 
                             <Divider sx={{my: 2, bgcolor: lightBlue[100]}}/>
@@ -140,7 +140,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Создание комнаты"
-                                        secondary="Хост настраивает параметры: режим, сложность, количество игроков, выбор персонажей."
+                                        secondary="Хост настраивает параметры игровой комнаты: режим, сложность, количество игроков, выбор персонажа."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -159,7 +159,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Присоединение"
-                                        secondary="Игроки входят в комнату по уникальному ID, полученному от хоста."
+                                        secondary="Игроки входят в комнату по уникальному ID, полученному от хоста, и выбирают своего персонажа."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -177,8 +177,8 @@ export default function RulePageComponent() {
                                 </ListItem>
                                 <ListItem>
                                     <ListItemText
-                                        primary="Игровое поле"
-                                        secondary="Строится из случайных комнат (тайная карта). Одна комната — стартовая, одна — Room 25 (выход), остальные содержат опасности или являются нейтральными."
+                                        primary="Подготовка игрового поля"
+                                        secondary="Игровое поле строится из случайных комнат (сложность игры влияет на то, какие комнаты будут в генерации). Одна комната — стартовая, одна — Room 25 (выход), остальные могут как таить в себе опасности, так и быть полезными для игроков."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -197,7 +197,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Ходы"
-                                        secondary="В каждый раунд игроки выбирают по два действия (перемещение, исследование, сдвиг комнаты или выталкивание). Можете обсудить свои мысли с другими игроками — но будьте осторожны с доверием!"
+                                        secondary="В каждом раунде игроки выбирают по два действия (перемещение, исследование, контроль или выталкивание). Можете обсудить свои мысли с другими игроками — но будьте осторожны с доверием!"
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -216,7 +216,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Победа или поражение"
-                                        secondary="Для победы: всей командой оказаться в Room 25, пока не кончилось число ходов. В режиме подозрения — будьте внимательны: среди вас может быть Надзиратель!"
+                                        secondary="Для победы всей командой нужно оказаться в комнате 25, пока не закончилось число ходов. В режиме подозрения — будьте внимательны: среди вас также может быть Надзиратель, который должен помешать вам в побеге!"
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -513,7 +513,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Кооперация"
-                                        secondary="Все игроки — одна команда, не подозревают друг друга. Цель — сбежать вместе."
+                                        secondary="Все игроки — одна команда. Цель — сбежать вместе."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -532,7 +532,7 @@ export default function RulePageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Подозрение (будет позже)"
-                                        secondary="В игре могут быть скрытые предатели, задача которых — помешать другим выбраться."
+                                        secondary="В игре могут быть Надзиратели, задача которых — помешать другим выбраться."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',

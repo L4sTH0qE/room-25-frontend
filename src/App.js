@@ -7,8 +7,11 @@ import {lightBlue} from "@mui/material/colors";
 import HomePageComponent from "./components/pages/HomePageComponent";
 import logoutIcon from './assets/images/icons/logout.png'
 import AboutPageComponent from "./components/pages/AboutPageComponent";
-import RulePageComponent from "./components/pages/RulePageComponent";
+import RulesPageComponent from "./components/pages/RulesPageComponent";
 import LobbyPageComponent from "./components/pages/LobbyPageComponent";
+import LobbyCreatePageComponent from "./components/pages/LobbyCreatePageComponent";
+import LobbyJoinPageComponent from "./components/pages/LobbyJoinPageComponent";
+import GamePageComponent from "./components/pages/GamePageComponent";
 
 export default function App(props) {
     const [username, setUsername] = useState("");
@@ -184,11 +187,16 @@ export default function App(props) {
         <>
             <Routes>
                 <Route key={true} path='/' element={userSubmitted ? <HomePageComponent username={username}/> : <> </>}/>;
-                <Route path='/rules' element={userSubmitted ? <RulePageComponent/> : <> </>}/>;
+                <Route path='/rules' element={userSubmitted ? <RulesPageComponent/> : <> </>}/>;
                 <Route path='/about' element={userSubmitted ? <AboutPageComponent/> : <> </>}/>;
-                <Route path='/lobby' element={userSubmitted ? <LobbyPageComponent/> : <> </>}/>;
+                <Route path='/lobby' element={userSubmitted ? <LobbyPageComponent username={username}/> : <> </>}/>;
+                <Route path='/lobby/create'
+                       element={userSubmitted ? <LobbyCreatePageComponent username={username}/> : <> </>}/>;
+                <Route path='/lobby/join'
+                       element={userSubmitted ? <LobbyJoinPageComponent username={username}/> : <> </>}/>;
+                <Route path='/game/:id' element={userSubmitted ? <GamePageComponent username={username}/> : <> </>}/>;
             </Routes>
-            {userSubmitted && location.pathname !== "/game" ?
+            {userSubmitted && !location.pathname.startsWith("/game") ?
                 <div>
                     <button className="logout-btn" onClick={logout}>
                         <img src={logoutIcon} alt={'Log Out'}/>

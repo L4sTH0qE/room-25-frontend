@@ -10,6 +10,16 @@ export default function LobbyPageComponent() {
 
     const navigate = useNavigate();
 
+    const onToLobbyCreate = () => {
+        localStorage.setItem('createByButton', '1');
+        navigate("/lobby/create");
+    };
+
+    const onToLobbyJoin = () => {
+        localStorage.setItem('joinByButton', 'true');
+        navigate("/lobby/join");
+    };
+
     const onToHome = () => {
         navigate("/");
     };
@@ -39,7 +49,7 @@ export default function LobbyPageComponent() {
                             }}
                             variant="text"
                             onClick={() => {
-                                console.log("Route to Create Lobby");
+                                onToLobbyCreate()
                             }}>
                             Создать лобби
                         </Button>
@@ -56,7 +66,7 @@ export default function LobbyPageComponent() {
                             }}
                             variant="text"
                             onClick={() => {
-                                console.log("Route to Join Lobby");
+                                onToLobbyJoin()
                             }}>
                             Присоединиться к лобби
                         </Button>
