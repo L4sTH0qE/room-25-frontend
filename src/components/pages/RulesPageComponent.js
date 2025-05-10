@@ -216,7 +216,10 @@ export default function RulesPageComponent() {
                                 <ListItem>
                                     <ListItemText
                                         primary="Победа или поражение"
-                                        secondary="Для победы всей командой нужно оказаться в комнате 25, пока не закончилось число ходов. В режиме подозрения — будьте внимательны: среди вас также может быть Надзиратель, который должен помешать вам в побеге!"
+                                        secondary="Для спасения из комплекса игроки должны:
+                                         Активировать ключевую комнату (только в режиме Кооперации),
+                                         Найти комнату 25 и вместе зайти в нее,
+                                         Выдвинуть комнату 25 вместе со всеми заключенными через Зону выхода при помощи действия Контроль, пока не закончилось число ходов. В режиме подозрения — будьте внимательны: среди вас также может быть Надзиратель, который должен помешать вам в побеге!"
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -244,12 +247,11 @@ export default function RulesPageComponent() {
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 3,
-                                    alignItems: 'flex-start',
                                     my: 2
                                 }}>
                                     <ListItemText
                                         primary="Перемещение"
-                                        secondary="Переход в открытую соседнюю комнату (по вертикали/горизонтали)."
+                                        secondary="Переместите своего персонажа в соседнюю комнату. Если эта комната все еще скрыта, то она переворачивается и остается открытой до конца игры. Затем сразу же выполните эффект этой комнаты. Эффект комнаты срабатывает каждый раз, когда в нее заходит персонаж."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -261,7 +263,7 @@ export default function RulesPageComponent() {
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
                                                 color: '#f0f0f0',
-                                                maxWidth: 300
+                                                maxWidth: 400
                                             }
                                         }}
                                     />
@@ -276,12 +278,11 @@ export default function RulesPageComponent() {
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 3,
-                                    alignItems: 'flex-start',
                                     my: 2
                                 }}>
                                     <ListItemText
                                         primary="Исследование"
-                                        secondary="Посмотреть тип закрытой соседней комнаты (информация остается только у вас)."
+                                        secondary="Выберите скрытую соседнюю комнату и втайне посмотрите на нее. Остальным игрокам вы можете назвать только цвет комнаты: красный, зеленый, желтый или голубой. Вы НЕ можете сообщать другим игрокам ее название."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -309,12 +310,11 @@ export default function RulesPageComponent() {
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 3,
-                                    alignItems: 'flex-start',
                                     my: 2
                                 }}>
                                     <ListItemText
                                         primary="Контроль"
-                                        secondary="Передвинуть выбранную строку или столбец поля, изменяя расположение комнат лабиринта."
+                                        secondary="Выберите ряд или столбец комплекса из 5 комнат, в который входит комната с вашим персонажем, и выберите направление сдвига. Все комнаты в этом ряду сдвигаются на одну клетку вместе с находящимися в них персонажами. Вышедшая за пределы комплекса комната сдвигается в начало ряда. Жетон направления у сдвинутого ряда будет показывать направление его движения. За время одного раунда ряд можно сдвинуть несколько раз, но только в одном направлении. Центральную комнату НЕЛЬЗЯ сдвигать, поэтому вы НЕ МОЖЕТЕ использовать это действие на ряду или столбце с центральной комнатой."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -341,12 +341,11 @@ export default function RulesPageComponent() {
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 3,
-                                    alignItems: 'flex-start',
                                     my: 2
                                 }}>
                                     <ListItemText
                                         primary="Выталкивание"
-                                        secondary="Передвинуть другого игрока в соседнюю комнату."
+                                        secondary="Переместите в соседнюю комнату другого персонажа, стоящего с вами в одной комнате. Если комната была скрыта, она открывается. После этого персонаж выполняет эффект комнаты, в которой он оказался. ЗАПРЕЩЕНО толкать персонажей ИЗ центральной комнаты, но не запрещается толкать персонажей В центральную комнату."
                                         primaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
@@ -357,7 +356,8 @@ export default function RulesPageComponent() {
                                         secondaryTypographyProps={{
                                             sx: {
                                                 fontFamily: 'Roboto, monospace',
-                                                color: '#f0f0f0'
+                                                color: '#f0f0f0',
+                                                maxWidth: 400
                                             }
                                         }}
                                     />

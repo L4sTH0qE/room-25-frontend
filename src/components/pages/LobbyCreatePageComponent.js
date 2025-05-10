@@ -24,13 +24,11 @@ import {lightBlue} from "@mui/material/colors";
 
 
 const modes = [
-    {value: "COOP", label: "Кооперация"},
-    {value: "SUSPECT", label: "Подозрение"}
+    {value: "COOP", label: "Кооперация"}
 ];
 const difficulties = [
     {value: "EASY", label: "Легко"},
-    {value: "MEDIUM", label: "Средне"},
-    {value: "HARD", label: "Сложно"}
+    {value: "MEDIUM", label: "Средне"}
 ];
 const characters = [
     {name: "Франк", img: frankIcon, nick: "frank"},
