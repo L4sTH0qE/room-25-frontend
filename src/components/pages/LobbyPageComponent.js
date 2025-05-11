@@ -51,7 +51,7 @@ export default function LobbyPageComponent() {
                             onClick={() => {
                                 onToLobbyCreate()
                             }}>
-                            Создать лобби
+                            Создать комнату
                         </Button>
                         <br/>
                         <Button // Button to Read rules.
@@ -68,7 +68,7 @@ export default function LobbyPageComponent() {
                             onClick={() => {
                                 onToLobbyJoin()
                             }}>
-                            Присоединиться к лобби
+                            Присоединиться к комнате
                         </Button>
                         <br/>
                         <Button // Button to Check Game info.

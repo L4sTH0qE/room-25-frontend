@@ -64,10 +64,19 @@ body {
     background-color: #191919;
     font-family: 'Roboto', monospace;
 
-    background-image: url('assets/images/background/animated_background.gif'); /*url('assets/images/rules/ru/1.png');*/
+    background-image: url('assets/images/background/animated_background.gif');
     background-size: cover;
     background-repeat: no-repeat;
     background-position: top;
+    min-height: 100vh;
+}
+
+.gamepage-background {
+    background-image: url('assets/images/background/background.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
     min-height: 100vh;
 }
 
@@ -199,4 +208,12 @@ h3 {
 
 .custom-scrollbar::-webkit-scrollbar-corner {
     background: #192136;
+}
+
+.copy-btn {
+    width: 32px;
+    height: 64px;
+    box-shadow: 0 0 10px #29374e;
+    justify-content: center;
+    align-items: center;
 }

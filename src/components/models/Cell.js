@@ -1,4 +1,4 @@
 export class Cell {
     type;      // string
-    isFaceUp;    // boolean
+    faceUp;    // boolean
 }
