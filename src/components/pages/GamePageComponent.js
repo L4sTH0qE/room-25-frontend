@@ -47,10 +47,15 @@ import maxSheetImg from '../../assets/images/characters/max/MAX_SHEET.png';
 import emmettSheetImg from '../../assets/images/characters/emmett/EMMETT_SHEET.png';
 import aliceSheetImg from '../../assets/images/characters/alice/ALICE_SHEET.png';
 import jenniferSheetImg from '../../assets/images/characters/jennifer/JENNIFER_SHEET.png';
-import {Modal} from "reactstrap";
+
+import lookImg from '../../assets/images/actions/LOOK.png'
+import moveImg from '../../assets/images/actions/MOVE.png'
+import pushImg from '../../assets/images/actions/PUSH.png'
+import controlImg from '../../assets/images/actions/CONTROL.png'
+import noneImg from '../../assets/images/actions/NONE.png'
+
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import Dialog from "@mui/material/Dialog";
 
 /**
@@ -62,6 +67,18 @@ export default function GamePageComponent(props) {
     const [stompClient, setStompClient] = useState(null);
     const [room, setRoom] = useState(null);
     const [sheetOpen, setSheetOpen] = useState(false);
+
+    const [selectedActions, setSelectedActions] = useState([null, null]);
+    const [isReady, setIsReady] = useState(false);
+    const [waitingActions, setWaitingActions] = useState(false);
+
+    const [currentPlayer, setCurrentPlayer] = useState(null);
+    const [selectableCells, setSelectableCells] = useState([]);
+    const [selectablePlayers, setSelectablePlayers] = useState([]);
+    const [actionRequest, setActionRequest] = useState(null);
+
+    const [lookDialogOpen, setLookDialogOpen] = useState(false);
+    const [lookedCell, setLookedCell] = useState(null);
 
     const cellTypeImages = {
         CENTRAL_ROOM: centralRoomImg,
@@ -131,6 +148,28 @@ export default function GamePageComponent(props) {
                 client.subscribe(`/topic/room/${id}`, (message) => {
                     const roomData = JSON.parse(message.body);
                     setRoom(roomData);
+
+                    if (roomData.currentPhase === 1) {
+                        setIsReady(false);
+                    } else {
+                        setWaitingActions(false);
+                        const curPlayer = roomData.players[(roomData.currentPlayer + ((1 - roomData.currentTurn) % roomData.numberOfPlayers + roomData.numberOfPlayers)) % roomData.numberOfPlayers];
+                        setCurrentPlayer(curPlayer);
+                        if (curPlayer.clientName === props.username) {
+                            console.log(roomData);
+                            console.log(curPlayer);
+                            let playerAction = roomData.currentPhase - 2 === 0 ? curPlayer.playerAction.firstAction : curPlayer.playerAction.secondAction;
+                            if (playerAction === "NONE") {
+                                client.send(`/app/room/${id}/action`, {},
+                                    JSON.stringify({
+                                        roomData
+                                    }),
+                                );
+                            } else {
+                                handleAction(curPlayer, playerAction, roomData);
+                            }
+                        }
+                    }
                 });
 
                 setStompClient(client);
@@ -160,9 +199,101 @@ export default function GamePageComponent(props) {
 
     const myPlayer = room.players.find(p => p.clientName === props.username);
 
+    const actionList = [
+        {value: "LOOK", label: "Смотреть", icon: lookImg},
+        {value: "MOVE", label: "Перейти", icon: moveImg},
+        {value: "PUSH", label: "Толкнуть", icon: pushImg},
+        {value: "CONTROL", label: "Управлять", icon: controlImg},
+        {value: "NONE", label: "Ничего не делать", icon: noneImg},
+    ];
+
+    function handleSubmitActions() {
+        if (selectedActions[0] === null || selectedActions[1] === null || waitingActions || room.currentPhase !== 1) return;
+        let myPlayer = room.players.find(p => p.clientName === props.username);
+        setIsReady(true);
+        setWaitingActions(true);
+        stompClient.send(`/app/room/${id}/preparation`, {},
+            JSON.stringify({
+                player: myPlayer.clientName,
+                actions: [selectedActions[0], selectedActions[1]]
+            }),
+        );
+        setSheetOpen(false);
+    }
+
+    function handleAction(curPlayer, actionType, roomData) {
+        let myPlayer = roomData.players.find(p => p.clientName === props.username);
+        if (actionType === "LOOK" || actionType === "MOVE") {
+            setSelectableCells(getAdjacentCells(myPlayer, roomData));
+            setActionRequest({type: actionType, myPlayer});
+        } else if (actionType === "PUSH") {
+            const candidates = roomData.players.filter(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName);
+            setSelectablePlayers(candidates);
+            setActionRequest({type: "PUSH_SELECT_PLAYER", myPlayer});
+        } else if (actionType === "CONTROL") {
+            setActionRequest({type: "CONTROL", myPlayer});
+        } else {
+            goToNextAction(roomData);
+        }
+    }
+
+    function getAdjacentCells(player, roomData) {
+        const cells = [];
+        const dx = [-1, 0, 1, 0], dy = [0, 1, 0, -1];
+        for (let d = 0; d < 4; d++) {
+            const nx = player.coordX + dx[d];
+            const ny = player.coordY + dy[d];
+            if (roomData.board?.[nx]?.[ny]) {
+                cells.push({i: nx, j: ny});
+            }
+        }
+        return cells;
+    }
+
+    function resolveActionOnCell(i, j) {
+        let myPlayer = room.players.find(p => p.clientName === props.username);
+        if (actionRequest.type === "LOOK") {
+            setLookedCell({
+                i, j,
+                cell: room.board[i][j]
+            });
+            setLookDialogOpen(true);
+        } else if (actionRequest.type === "MOVE") {
+            const p = myPlayer;
+            let newRoom = {...room};
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
+            );
+            newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
+
+            /* Здесь нужно обрабатывать все обновления статусов после движения */
+            if (newRoom.board[i][j].type === "FREEZER_ROOM") {
+                newRoom.players = newRoom.players.map(pl =>
+                    pl.clientName === p.clientName ? {...pl, status: "FROZEN"} : pl
+                );
+            }
+            setRoom(newRoom);
+            goToNextAction(newRoom);
+        } else if (actionRequest.type === "PUSH_SELECT_CELL") {
+        }
+    }
+
+    function goToNextAction(roomData) {
+        setSelectableCells([]);
+        setSelectablePlayers([]);
+        setLookedCell(null);
+        setLookDialogOpen(false);
+        console.log(roomData);
+        if (stompClient !== null) {
+            stompClient.send(`/app/room/${id}/action`, {},
+                JSON.stringify(roomData),
+            );
+        }
+    }
+
     return (
         <div className="gamepage-background">
-            <Box sx={{minHeight:'100vh', py:4, px:2, color:'#f0f0f0', fontFamily:'Roboto, monospace'}}>
+            <Box sx={{minHeight: '100vh', py: 4, px: 2, color: '#f0f0f0', fontFamily: 'Roboto, monospace'}}>
 
                 {/* Карточка с инфой по комнате */}
                 <CardContent sx={{
@@ -203,22 +334,30 @@ export default function GamePageComponent(props) {
                 </CardContent>
 
                 {/* Панель ходов */}
-                <Box sx={{width:'100%', display:'flex', alignItems:'center', justifyContent:'center', mt:-8, mb:5, position:"relative"}}>
-                    <Box sx={{position:"relative", width: 640, height:140}}>
+                <Box sx={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mt: -8,
+                    mb: 5,
+                    position: "relative"
+                }}>
+                    <Box sx={{position: "relative", width: 640, height: 140}}>
                         <img src={turnPanelImg} alt="action panel" height="140"
-                             style={{width:"100%", objectFit:"contain", boxShadow: '0 0 30px #202020'}}/>
+                             style={{width: "100%", objectFit: "contain", boxShadow: '0 0 30px #202020'}}/>
                         {room.players.map((p, idx) => (
                             <img
                                 key={p.clientId}
-                                src={p.status === 'NORMAL' ? characterAliveTokens[p.character] : characterDeadTokens[p.character]}
+                                src={p.status === 'DEAD' ? characterDeadTokens[p.character] : characterAliveTokens[p.character]}
                                 alt="token"
                                 style={{
                                     position: 'absolute',
-                                    left: 175 + (room.numberOfPlayers - idx - 1) * 40 + (room.currentTurn === 1 ? 0 : (idx === ((room.numberOfPlayers - ((room.currentTurn - 1) % room.numberOfPlayers)) % room.numberOfPlayers)) * room.numberOfPlayers * 40),
+                                    left: 175 + (room.numberOfPlayers - idx - 1) * 40 + (room.currentTurn === 1 ? 0 : (idx === (room.numberOfPlayers - ((room.currentTurn - 1) % room.numberOfPlayers))) * room.numberOfPlayers * 40 + Math.floor((room.currentTurn - 1) / room.numberOfPlayers) * room.numberOfPlayers * 40),
                                     top: 60,
-                                    width:40, height:70,
+                                    width: 40, height: 70,
                                     border: "2px solid #202020",
-                                    background:'#232631'
+                                    background: '#232631'
                                 }}/>
                         ))}
                     </Box>
@@ -229,7 +368,14 @@ export default function GamePageComponent(props) {
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={12} md={3} lg={2}>
                         <Typography variant="h6"
-                                    sx={{ mb: 2, color: lightBlue[300], fontWeight: 'bold', textAlign:"center", fontSize: '140%', textShadow: '0 0 10px #4fc3f7' }}>
+                                    sx={{
+                                        mb: 2,
+                                        color: lightBlue[300],
+                                        fontWeight: 'bold',
+                                        textAlign: "center",
+                                        fontSize: '140%',
+                                        textShadow: '0 0 10px #4fc3f7'
+                                    }}>
                             Игроки:
                         </Typography>
                         <Stack direction="column" spacing={2}>
@@ -262,7 +408,8 @@ export default function GamePageComponent(props) {
                                             <span style={{color: "#ffe462", marginLeft: 8}}>(в заключении)</span>}
                                         {p.status === "TRAPPED" &&
                                             <span style={{color: "#d25b3f", marginLeft: 8}}>(в ловушке)</span>}
-                                        {p.status === "DEAD" && <span style={{color: "#fd7077", marginLeft: 8}}>(мертв)</span>}
+                                        {p.status === "DEAD" &&
+                                            <span style={{color: "#fd7077", marginLeft: 8}}>(мертв)</span>}
                                     </Typography>
                                     <Typography fontSize={14} sx={{opacity: 0.9}}>
                                         Координаты: [{p.coordX},{p.coordY}]<br/>
@@ -272,69 +419,91 @@ export default function GamePageComponent(props) {
                         </Stack>
                     </Grid>
 
-                    <Grid item xs={12} md={9} lg={7} sx={{ display: "flex", justifyContent: "center", alignItems: "center"}}>
+                    <Grid item xs={12} md={9} lg={7}
+                          sx={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                         {/* Игровое поле */}
-                        <Grid container spacing={1} justifyContent="center" alignItems="center" sx={{mb: 2, mx: "auto"}}>
+                        <Grid container spacing={1} justifyContent="center" alignItems="center"
+                              sx={{mb: 2, mx: "auto"}}>
                             {room.board.map((row, i) =>
                                 <Grid item xs={12} key={i} sx={{display: 'flex', justifyContent: 'center'}}>
-                                    {row.map((cell, j) => (
-                                        <Paper key={j} elevation={5}
-                                               sx={{
-                                                   width: 105, height: 105,
-                                                   display: "flex", alignItems: "center", justifyContent: "center",
-                                                   borderRadius: "20%",
-                                                   boxShadow: "0 1px 8px #0f0c12",
-                                                   position:"relative",
-                                                   mr: 1
-                                               }}>
-                                            <img
-                                                src={cell.faceUp ? cellTypeImages[cell.type] : faceDownImg}
-                                                alt={cell.type}
-                                                style={{
-                                                    width: 105,
-                                                    height: 105,
-                                                    borderRadius: "5%",
-                                                }}
-                                            />
-                                            {room.players.filter(p=>p.coordX===i && p.coordY===j).map((playerOnCell, idx) =>
-                                                <img key={playerOnCell.clientId + idx}
-                                                     src={playerOnCell.status === 'NORMAL' ? characterAliveTokens[playerOnCell.character] : characterDeadTokens[playerOnCell.character]}
-                                                     alt="token" style={{
-                                                    width:30,
-                                                    height:50,
-                                                    position:"absolute",
-                                                    left: 12 + idx * 11,
-                                                    top: 40 - 20 * ((room.numberOfPlayers - idx - 1) % 2),
-                                                    border:'1px solid #f0f0f0',
-                                                    borderRadius:'15%',
-                                                    background:'#191919',
-                                                    boxShadow:'0 0 4px #5fbfcc',
-                                                    zIndex:2,
-                                                }}/>
-                                            )}
-                                        </Paper>
-                                    ))}
+                                    {row.map((cell, j) => {
+                                        const isSelectable = selectableCells.some(c => c.i === i && c.j === j);
+                                        return (
+                                            <Paper key={j} elevation={5}
+                                                   sx={{
+                                                       width: 105, height: 105,
+                                                       display: "flex", alignItems: "center", justifyContent: "center",
+                                                       borderRadius: "20%",
+                                                       boxShadow: "0 1px 8px #0f0c12",
+                                                       position: "relative",
+                                                       cursor: isSelectable ? "pointer" : "default",
+                                                       mr: 1
+                                                   }}
+                                                   onClick={() => {
+                                                       if (isSelectable) {
+                                                           resolveActionOnCell(i, j);
+                                                       }
+                                                   }}>
+                                                <img
+                                                    src={cell.faceUp ? cellTypeImages[cell.type] : faceDownImg}
+                                                    alt={cell.type}
+                                                    style={{
+                                                        width: 105,
+                                                        height: 105,
+                                                        borderRadius: "5%",
+                                                        border: isSelectable ? "1px solid #79eaff" : "1px solid #202020",
+                                                        boxShadow: isSelectable ? "0 0 5px #79eaff" : "0 0 1px #202020",
+                                                    }}
+                                                />
+                                                {room.players.filter(p => p.coordX === i && p.coordY === j).map((playerOnCell, idx) => {
+                                                        const isSelectablePlayer = selectablePlayers.some(player => player.clientName === playerOnCell.clientName);
+                                                        return (<img key={playerOnCell.clientId + idx}
+                                                                     src={playerOnCell.status === 'DEAD' ? characterDeadTokens[playerOnCell.character] : characterAliveTokens[playerOnCell.character]}
+                                                                     alt="token" style={{
+                                                            width: 30,
+                                                            height: 50,
+                                                            position: "absolute",
+                                                            left: 12 + idx * 11,
+                                                            top: 40 - 20 * ((room.numberOfPlayers - idx - 1) % 2),
+                                                            border: '1px solid #f0f0f0',
+                                                            borderRadius: '15%',
+                                                            background: '#191919',
+                                                            boxShadow: '0 0 4px #5fbfcc',
+                                                            zIndex: 2,
+                                                            cursor: isSelectablePlayer ? "pointer" : "default",
+                                                        }}
+                                                                     onClick={() => {
+                                                                         if (isSelectablePlayer) {
+                                                                             console.log(playerOnCell.character);
+                                                                         }
+                                                                     }}
+                                                        />);
+                                                    }
+                                                )}
+                                            </Paper>
+                                        );
+                                    })}
                                 </Grid>
                             )}
                         </Grid>
 
-                        <Grid item xs={12}  lg={5}>
+                        <Grid item xs={12} lg={5}>
                             <Stack direction="column" spacing={2}>
                                 {/* Панель хода */}
                                 <Box sx={{
                                     my: 2, fontSize: '1.18em', textAlign: 'center', color: lightBlue[300],
-                                    background: "rgba(44,54,86,0.93)", borderRadius:3, py:2, mb:2
+                                    background: "rgba(44,54,86,0.93)", borderRadius: 3, py: 2, mb: 2
                                 }}>
-                            <span style={{fontWeight:700, fontSize:'1.13em', display: 'block'}}>
+                            <span style={{fontWeight: 700, fontSize: '1.13em', display: 'block'}}>
                                 Раунд {room.currentTurn} / {room.totalTurns}
                             </span>
 
-                            <span style={{marginLeft: 16, fontWeight:700, display: 'block'}}>
-                                Фаза: {room.currentPhase}
+                                    <span style={{marginLeft: 16, fontWeight: 700, display: 'block'}}>
+                                Фаза: {room.currentPhase === 1 ? "подготовка действий" : room.currentPhase === 2 ? "выполнение 1 действия" : "выполнение 2 действия"}
                             </span>
 
-                            <span style={{marginLeft: 16, color:'#ffcf73', fontWeight:700, display: 'block'}}>
-                                Активный игрок: {room.players[room.currentPlayer]?.clientName || "(нет)"}
+                                    <span style={{marginLeft: 16, color: '#ffcf73', fontWeight: 700, display: 'block'}}>
+                                Текущий игрок: {room.currentPhase !== 1 ? currentPlayer?.clientName || "(нет)" : "(нет)"}
                             </span>
                                 </Box>
 
@@ -351,7 +520,8 @@ export default function GamePageComponent(props) {
                                             boxShadow: '0 0 10px #4fc3f7',
                                             "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
                                         }}
-                                        onClick={()=>setSheetOpen(true)}>
+                                        disabled={room.status === "waiting"}
+                                        onClick={() => setSheetOpen(true)}>
                                     Карточка вашего персонажа
                                 </Button>
                             </Stack>
@@ -377,23 +547,197 @@ export default function GamePageComponent(props) {
                     }}
                 >
                     <DialogContent className="custom-scrollbar">
-                        {myPlayer && (
-                            <Stack direction="column">
-                                <img src={characterSheets[myPlayer.character]} alt="character" width={1012} />
-                                {/* Выбор действий */}
-                                <Stack direction="row" gap={2} mt={2}>
-                                    <Button variant="outlined" sx={{ borderColor: "#5fbfcc", color: '#5fbfcc', fontWeight:800, minWidth: 120 }}>Действие 1</Button>
-                                    <Button variant="outlined" sx={{ borderColor: "#5fbfcc", color: '#5fbfcc', fontWeight:800, minWidth: 120 }}>Действие 2</Button>
-                                </Stack>
-                            </Stack>
+                        <Stack gap={2} alignItems="center">
+                            {myPlayer && (
+                                <>
+                                    <img src={characterSheets[myPlayer.character.toUpperCase()]} alt="character"
+                                         width="1012"/>
+                                    <Typography sx={{
+                                        fontFamily: 'Roboto, monospace',
+                                        color: '#d25b3f',
+                                        textAlign: "center",
+                                        mt: 2,
+                                        fontWeight: 700,
+                                        fontSize: '140%',
+                                        textShadow: '0 0 10px #d25b3f'
+                                    }}>
+                                        Выбор действий:
+                                    </Typography>
+                                    <Typography sx={{
+                                        fontFamily: 'Roboto, monospace',
+                                        color: '#f0f0f0',
+                                        textAlign: "center",
+                                        mt: 2,
+                                        fontWeight: 700,
+                                        fontSize: '120%',
+                                        textShadow: '0 0 5px #d25b3f'
+                                    }}>
+                                        Действие 1
+                                    </Typography>
+                                    <Stack direction="row" spacing={2} justifyContent="center" mb={2}>
+                                        {actionList
+                                            .filter(a => a.value !== selectedActions[1])
+                                            .map(a => (
+                                                <Box
+                                                    key={a.value}
+                                                    component="button"
+                                                    onClick={() => {
+                                                        if (!isReady && room.currentPhase === 1) {
+                                                            setSelectedActions([a.value, selectedActions[1]])
+                                                        }
+                                                    }
+                                                    }
+                                                    sx={{
+                                                        border: a.value === selectedActions[0] ? '3px solid #4fc3f7' : "3px solid #4D220E",
+                                                        boxShadow: a.value === selectedActions[0] ? '0 0 15px #4fc3f7' : '0 0 0px #4D220E',
+                                                        borderRadius: 2,
+                                                        background: "none",
+                                                        p: 0,
+                                                        outline: 'none',
+                                                        mr: 1,
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <img src={a.icon} alt={a.label} width={128}
+                                                         style={{display: "block", borderRadius: 5}}/>
+                                                </Box>
+                                            ))}
+                                    </Stack>
+                                    <Typography sx={{
+                                        fontFamily: 'Roboto, monospace',
+                                        color: '#f0f0f0',
+                                        textAlign: "center",
+                                        mt: 2,
+                                        fontWeight: 700,
+                                        fontSize: '120%',
+                                        textShadow: '0 0 5px #d25b3f'
+                                    }}>
+                                        Действие 2
+                                    </Typography>
+                                    <Stack direction="row" spacing={2} justifyContent="center" mb={2}>
+                                        {actionList
+                                            .filter(a => a.value !== selectedActions[0])
+                                            .map(a => (
+                                                <Box
+                                                    key={a.value}
+                                                    component="button"
+                                                    onClick={() => {
+                                                        if (!isReady && room.currentPhase === 1) {
+                                                            setSelectedActions([selectedActions[0], a.value]);
+                                                        }
+                                                    }
+                                                    }
+                                                    sx={{
+                                                        border: a.value === selectedActions[1] ? '3px solid #4fc3f7' : "3px solid #4D220E",
+                                                        boxShadow: a.value === selectedActions[1] ? '0 0 15px #4fc3f7' : '0 0 0px #4D220E',
+                                                        borderRadius: 2,
+                                                        background: "none",
+                                                        p: 0,
+                                                        outline: 'none',
+                                                        mr: 1,
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <img src={a.icon} alt={a.label} width={128}
+                                                         style={{display: "block", borderRadius: 5}}/>
+                                                </Box>
+                                            ))}
+                                    </Stack>
+                                    <Button
+                                        variant="contained"
+                                        sx={{
+                                            fontFamily: 'Roboto, monospace',
+                                            fontSize: '140%',
+                                            fontWeight: 'bold',
+                                            color: lightBlue["50"],
+                                            backgroundColor: '#202020',
+                                            "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
+                                        }}
+                                        onClick={handleSubmitActions}
+                                        disabled={selectedActions[0] === null || selectedActions[1] === null || waitingActions === true || room.currentPhase !== 1}
+                                    >Готов!</Button>
+                                </>
+                            )}
+                        </Stack>
+                        {waitingActions && room.currentPhase === 1 && (
+                            <Typography sx={{
+                                fontFamily: 'Roboto, monospace',
+                                color: '#d25b3f',
+                                textAlign: "center",
+                                mt: 2,
+                                fontWeight: 700,
+                                textShadow: '0 0 10px #d25b3f'
+                            }}>
+                                Ждём других игроков...
+                            </Typography>
+                        )}
+                        {room.currentPhase !== 1 && (
+                            <Typography sx={{
+                                fontFamily: 'Roboto, monospace',
+                                color: '#d25b3f',
+                                textAlign: "center",
+                                mt: 2,
+                                fontWeight: 700,
+                                textShadow: '0 0 10px #d25b3f'
+                            }}>
+                                Ждём завершения фазы действий...
+                            </Typography>
                         )}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setSheetOpen(false)} sx={{
-                            color:"#f0f0f0",
-                            fontWeight:"bold",
-                            fontFamily:"Roboto, monospace"
+                            borderRadius: '12px',
+                            width: '120px',
+                            color: '#f0f0f0',
+                            backgroundColor: '#2e415f',
+                            fontFamily: 'Roboto, monospace',
+                            fontSize: '100%',
+                            fontWeight: 'bold',
+                            "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
                         }}>Закрыть</Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Просмотр поля после LOOK */}
+                <Dialog open={lookDialogOpen} onClose={() => {
+                    setLookDialogOpen(false);
+                    goToNextAction(room);
+                }}>
+                    <DialogContent className="custom-scrollbar" sx={{ background: "#232639", color: "#f0f0f0", borderRadius: "0%", borderColor: "#232639" }}>
+                        <Stack gap={2} alignItems="center">
+                        {lookedCell && (
+                            <>
+                                <Typography sx={{ fontSize: 24, fontWeight: 700, mb: 2 }}>
+                                    {`Вы посмотрели комнату [${lookedCell.i + 1} ряд, ${lookedCell.j + 1} столбец]:`}
+                                </Typography>
+                                <img
+                                    src={cellTypeImages[lookedCell.cell.type]}
+                                    alt={lookedCell.cell.type}
+                                    style={{ width: 130, marginBottom: 12, marginTop: 6, borderRadius: 12, boxShadow: "0 0 8px #78eefa" }}
+                                />
+                            </>
+                        )}
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{background: "#232639", color: "#f0f0f0" }}>
+                        <Button
+                            onClick={() => {
+                                setLookDialogOpen(false);
+                                goToNextAction(room);
+                            }}
+                            sx={{
+                                borderRadius: '12px',
+                                width: '120px',
+                                color: '#f0f0f0',
+                                backgroundColor: '#2e415f',
+                                fontFamily: 'Roboto, monospace',
+                                fontSize: '100%',
+                                fontWeight: 'bold',
+                                "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
+                            }}
+                        >
+                            Закрыть
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </Box>

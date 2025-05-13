@@ -21,6 +21,7 @@ import lookAction from '../../assets/images/actions/LOOK.png'
 import moveAction from '../../assets/images/actions/MOVE.png'
 import pushAction from '../../assets/images/actions/PUSH.png'
 import controlAction from '../../assets/images/actions/CONTROL.png'
+import noneAction from '../../assets/images/actions/NONE.png'
 
 import {useNavigate} from "react-router-dom";
 import {lightBlue} from "@mui/material/colors";
@@ -362,6 +363,38 @@ export default function RulesPageComponent() {
                                         }}
                                     />
                                     <img src={pushAction} alt="Выталкивание" style={{
+                                        maxWidth: "25%",
+                                        borderRadius: "18px",
+                                        marginBottom: "14px",
+                                        boxShadow: '0 0 18px #172916'
+                                    }}/>
+                                </ListItem>
+                                <ListItem sx={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 3,
+                                    my: 2
+                                }}>
+                                    <ListItemText
+                                        primary="Ничешл не делать"
+                                        secondary="Одним своим действием вы можете выбрать отсутствие действия. Это позволит вам пропустить ход, если вы не хотите чего-то делать или собираетесь подождать действий остальных игроков."
+                                        primaryTypographyProps={{
+                                            sx: {
+                                                fontFamily: 'Roboto, monospace',
+                                                color: '#f0f0f0',
+                                                fontWeight: 700,
+                                            }
+                                        }}
+                                        secondaryTypographyProps={{
+                                            sx: {
+                                                fontFamily: 'Roboto, monospace',
+                                                color: '#f0f0f0',
+                                                maxWidth: 400
+                                            }
+                                        }}
+                                    />
+                                    <br/>
+                                    <img src={noneAction} alt="Ничего не делать" style={{
                                         maxWidth: "25%",
                                         borderRadius: "18px",
                                         marginBottom: "14px",
