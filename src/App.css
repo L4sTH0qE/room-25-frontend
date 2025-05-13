@@ -72,12 +72,16 @@ body {
 }
 
 .gamepage-background {
-    background-image: url('assets/images/background/background.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-attachment: fixed;
+    position: relative;
     min-height: 100vh;
+}
+.gamepage-background::before {
+    content: "";
+    z-index: -1;
+    position: fixed;
+    inset: 0;
+    background: url('assets/images/background/background.png') center center / cover no-repeat fixed;
+    pointer-events: none;
 }
 
 p {
