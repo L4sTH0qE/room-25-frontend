@@ -31,7 +31,7 @@ const allCharacters = [
     {name: "Дженнифер", img: jenniferIcon, nick: "jennifer"}
 ];
 
-export default function LobbyJoinPageComponent() {
+export default function LobbyJoinPageComponent(props) {
     const [openLobbyJoin, setOpenLobbyJoin] = useState(true);
 
     const [step, setStep] = useState(1);
@@ -86,18 +86,25 @@ export default function LobbyJoinPageComponent() {
                 setIsFetching(false);
                 return;
             }
+
             if (!responseBody.exists) {
                 setRoomError("комната с таким ID не найдена");
+                return;
             }
-            if (responseBody.already_joined && responseBody.status !== "finished") {
+            if (responseBody.already_joined && (responseBody.status === "started" || responseBody.status === "waiting")) {
                 setOpenLobbyJoin(false);
-                navigate(`/game/${roomId}`)
+                navigate(`/game/${roomId}`);
+                return;
             }
             if (responseBody.status !== "waiting") {
                 setRoomError("в эту комнату уже нельзя присоединиться");
+                setIsFetching(false);
+                return;
             }
             if (responseBody.characters.length === 0) {
-                setRoomError("нет доступных персонажей")
+                setRoomError("нет доступных персонажей");
+                setIsFetching(false);
+                return;
             }
 
             const characters = responseBody.characters.map(nick => {

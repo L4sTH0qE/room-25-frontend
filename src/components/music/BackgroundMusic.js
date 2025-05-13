@@ -42,20 +42,15 @@ const BackgroundMusic = () => {
 
     return (
         <>
-            {
-                !location.pathname.startsWith("/game") ?
-                    <div>
-                        <audio ref={audioRef} loop>
-                            <source src={mainTheme} type="audio/mpeg"/>
-                            Your browser does not support the audio tag.
-                        </audio>
-                        <button className="msc-btn" onClick={togglePlay}>
-                            <img src={isPlaying ? pauseIcon : playIcon} alt={isPlaying ? 'Pause' : 'Play'}/>
-                        </button>
-                    </div> :
-                    <>
-                    </>
-            }
+            <div>
+                <audio ref={audioRef} loop>
+                    <source src={mainTheme} type="audio/mpeg"/>
+                    Your browser does not support the audio tag.
+                </audio>
+                <button className="msc-btn" onClick={togglePlay}>
+                    <img src={isPlaying ? pauseIcon : playIcon} alt={isPlaying ? 'Pause' : 'Play'}/>
+                </button>
+            </div> :
         </>
     );
 };
