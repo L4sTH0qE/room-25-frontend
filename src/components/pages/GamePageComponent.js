@@ -79,6 +79,7 @@ export default function GamePageComponent(props) {
 
     const [lookDialogOpen, setLookDialogOpen] = useState(false);
     const [lookedCell, setLookedCell] = useState(null);
+    const [noneDialogOpen, setNoneDialogOpen] = useState(false);
 
     const cellTypeImages = {
         CENTRAL_ROOM: centralRoomImg,
@@ -156,18 +157,8 @@ export default function GamePageComponent(props) {
                         const curPlayer = roomData.players[(roomData.currentPlayer + ((1 - roomData.currentTurn) % roomData.numberOfPlayers + roomData.numberOfPlayers)) % roomData.numberOfPlayers];
                         setCurrentPlayer(curPlayer);
                         if (curPlayer.clientName === props.username) {
-                            console.log(roomData);
-                            console.log(curPlayer);
                             let playerAction = roomData.currentPhase - 2 === 0 ? curPlayer.playerAction.firstAction : curPlayer.playerAction.secondAction;
-                            if (playerAction === "NONE") {
-                                client.send(`/app/room/${id}/action`, {},
-                                    JSON.stringify({
-                                        roomData
-                                    }),
-                                );
-                            } else {
-                                handleAction(curPlayer, playerAction, roomData);
-                            }
+                            handleAction(curPlayer, playerAction, roomData);
                         }
                     }
                 });
@@ -232,8 +223,8 @@ export default function GamePageComponent(props) {
             setActionRequest({type: "PUSH_SELECT_PLAYER", myPlayer});
         } else if (actionType === "CONTROL") {
             setActionRequest({type: "CONTROL", myPlayer});
-        } else {
-            goToNextAction(roomData);
+        } else if (actionType === "NONE") {
+            setNoneDialogOpen(true);
         }
     }
 
@@ -283,7 +274,8 @@ export default function GamePageComponent(props) {
         setSelectablePlayers([]);
         setLookedCell(null);
         setLookDialogOpen(false);
-        console.log(roomData);
+        setNoneDialogOpen(false);
+
         if (stompClient !== null) {
             stompClient.send(`/app/room/${id}/action`, {},
                 JSON.stringify(roomData),
@@ -699,27 +691,43 @@ export default function GamePageComponent(props) {
                 </Dialog>
 
                 {/* Просмотр поля после LOOK */}
-                <Dialog open={lookDialogOpen} onClose={() => {
-                    setLookDialogOpen(false);
-                    goToNextAction(room);
-                }}>
-                    <DialogContent className="custom-scrollbar" sx={{ background: "#232639", color: "#f0f0f0", borderRadius: "0%", borderColor: "#232639" }}>
+                <Dialog
+                    PaperProps={{
+                        sx: {backgroundColor: 'rgba(35,38,49,0.98)', color: '#f0f0f0', position: 'relative'}
+                    }}
+                    open={lookDialogOpen}
+                    onClose={() => {
+                        setLookDialogOpen(false);
+                        goToNextAction(room);
+                    }}>
+                    <DialogContent className="custom-scrollbar" sx={{
+                        background: "#29374e",
+                        color: "#f0f0f0",
+                        borderRadius: "0%",
+                        borderColor: "#29374e"
+                    }}>
                         <Stack gap={2} alignItems="center">
-                        {lookedCell && (
-                            <>
-                                <Typography sx={{ fontSize: 24, fontWeight: 700, mb: 2 }}>
-                                    {`Вы посмотрели комнату [${lookedCell.i + 1} ряд, ${lookedCell.j + 1} столбец]:`}
-                                </Typography>
-                                <img
-                                    src={cellTypeImages[lookedCell.cell.type]}
-                                    alt={lookedCell.cell.type}
-                                    style={{ width: 130, marginBottom: 12, marginTop: 6, borderRadius: 12, boxShadow: "0 0 8px #78eefa" }}
-                                />
-                            </>
-                        )}
+                            {lookedCell && (
+                                <>
+                                    <Typography sx={{fontSize: 24, fontWeight: 700, mb: 2}}>
+                                        {`Вы посмотрели комнату [${lookedCell.i + 1} ряд, ${lookedCell.j + 1} столбец]:`}
+                                    </Typography>
+                                    <img
+                                        src={cellTypeImages[lookedCell.cell.type]}
+                                        alt={lookedCell.cell.type}
+                                        style={{
+                                            width: 130,
+                                            marginBottom: 12,
+                                            marginTop: 6,
+                                            borderRadius: 12,
+                                            boxShadow: "0 0 8px #78eefa"
+                                        }}
+                                    />
+                                </>
+                            )}
                         </Stack>
                     </DialogContent>
-                    <DialogActions sx={{background: "#232639", color: "#f0f0f0" }}>
+                    <DialogActions sx={{background: "#29374e", color: "#f0f0f0"}}>
                         <Button
                             onClick={() => {
                                 setLookDialogOpen(false);
@@ -729,11 +737,57 @@ export default function GamePageComponent(props) {
                                 borderRadius: '12px',
                                 width: '120px',
                                 color: '#f0f0f0',
-                                backgroundColor: '#2e415f',
+                                backgroundColor: '#334871',
                                 fontFamily: 'Roboto, monospace',
                                 fontSize: '100%',
                                 fontWeight: 'bold',
-                                "&:hover": {color: '#ffffff', backgroundColor: '#334871'}
+                                "&:hover": {color: '#ffffff', backgroundColor: '#435881'}
+                            }}
+                        >
+                            Закрыть
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+                {/* Модальное окно, если действие NONE */}
+                <Dialog
+                    PaperProps={{
+                        sx: {backgroundColor: 'rgba(35,38,49,0.98)', color: '#f0f0f0', position: 'relative'}
+                    }}
+                    open={noneDialogOpen}
+                    onClose={() => {
+                        setNoneDialogOpen(false);
+                        goToNextAction(room);
+                    }}>
+                    <DialogContent className="custom-scrollbar" sx={{
+                        background: "#29374e",
+                        color: "#f0f0f0",
+                        borderRadius: "0%",
+                        borderColor: "#29374e",
+                        minHeight: '200px',
+                    }}>
+                        <Stack gap={2} alignItems="center">
+                            <>
+                                <Typography sx={{fontSize: 24, fontWeight: 700, mb: 2}}>
+                                    {`Вы решили отдохнуть и подумать о том, как вы до этого всего докатились...`}
+                                </Typography>
+                            </>
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{background: "#29374e", color: "#f0f0f0"}}>
+                        <Button
+                            onClick={() => {
+                                setNoneDialogOpen(false);
+                                goToNextAction(room);
+                            }}
+                            sx={{
+                                borderRadius: '12px',
+                                width: '120px',
+                                color: '#f0f0f0',
+                                backgroundColor: '#334871',
+                                fontFamily: 'Roboto, monospace',
+                                fontSize: '100%',
+                                fontWeight: 'bold',
+                                "&:hover": {color: '#ffffff', backgroundColor: '#435881'}
                             }}
                         >
                             Закрыть
