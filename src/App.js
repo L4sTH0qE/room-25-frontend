@@ -37,6 +37,14 @@ export default function App(props) {
         navigate("/");
     };
 
+    useEffect(() => {
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, []);
+
     // Hook to get user jwtToken from local storage or check whether there is no one.
     useEffect(() => {
         const token = localStorage.getItem('jwtToken');
