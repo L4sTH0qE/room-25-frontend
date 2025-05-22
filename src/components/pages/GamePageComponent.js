@@ -248,8 +248,16 @@ export default function GamePageComponent(props) {
     }
 
     function handleAction(curPlayer, actionType, roomData) {
-        let myPlayer = roomData.players.find(p => p.clientName === props.username);
-        if (actionType === "LOOK" || actionType === "MOVE") {
+        let myPlayer = roomData.players.find(pl => pl.clientName === props.username);
+        if (myPlayer.status === "TRAPPED" && actionType !== "MOVE") {
+            roomData.players = roomData.players.map(pl =>
+                pl.clientName === props.username ? {...pl, status: "DEAD"} : pl
+            );
+            roomData.status = "lost";
+            setGameStatus("lost");
+            setRoom(roomData);
+            goToNextAction(roomData);
+        } else if (actionType === "LOOK" || actionType === "MOVE") {
             if (actionType === "MOVE" && myPlayer.status === "IMPRISONED") {
                 const availableCells = getImprisonedCells(myPlayer, roomData);
                 if (availableCells.length === 0) {
@@ -346,8 +354,8 @@ export default function GamePageComponent(props) {
                 cell: room.board[i][j]
             });
             setLookDialogOpen(true);
-        } else if (actionRequest.type === "MOVE" || actionRequest.type === "PUSH") {
-            const p = actionRequest.type === "MOVE" ? myPlayer : selectedPlayer;
+        } else if (actionRequest.type === "MOVE") {
+            const p = myPlayer;
             let newRoom = {...room};
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
@@ -355,6 +363,15 @@ export default function GamePageComponent(props) {
             newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
 
             resolveRoomFunction(newRoom, p, i, j);
+        } else if (actionRequest.type === "PUSH") {
+            const p = selectedPlayer;
+            let newRoom = {...room};
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
+            );
+            newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
+
+            /*resolveRoomFunction(newRoom, p, i, j);*/
         } else if (actionRequest.type === "SWAP") {
             let newRoom = {...room};
             let x = myPlayer.coordX;
@@ -423,15 +440,27 @@ export default function GamePageComponent(props) {
                 newRoom.status = "lost";
                 setGameStatus("lost");
             }
+        } else if (newRoom.board[i][j].type === "TRAP_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "TRAPPED"} : pl
+            );
         } else if (newRoom.board[i][j].type === "DEATH_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "DEAD"} : pl
             );
             newRoom.status = "lost";
             setGameStatus("lost");
+        } else if (newRoom.board[i][j].type === "CENTRAL_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
         } else if (newRoom.board[i][j].type === "KEY_ROOM") {
             setKeyFound(true);
             newRoom.keyFound = true;
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "ROOM_25") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
@@ -449,11 +478,7 @@ export default function GamePageComponent(props) {
             );
         } else if (newRoom.board[i][j].type === "FLOODED_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "FLOODED"} : pl
-            );
-        } else if (newRoom.board[i][j].type === "TRAP_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "TRAPPED"} : pl
+                pl.clientName === player.clientName ? {...pl, status: "FLOODED_FIRST"} : pl
             );
         } else if (newRoom.board[i][j].type === "TORTURE_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
@@ -478,8 +503,15 @@ export default function GamePageComponent(props) {
                 );
                 newRoom.controlData.row = idx;
                 newRoom.controlData.orientation = "LEFT";
-            }
-            if (controlDirection === "RIGHT") {
+
+                if (newRoom.keyFound === true && first.type === "ROOM_25") {
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 0);
+                    if (allPlayersOnCell === true) {
+                        newRoom.status = "won";
+                        setGameStatus("won");
+                    }
+                }
+            } else if (controlDirection === "RIGHT") {
                 const last = newRoom.board[idx][4];
                 for (let c = 4; c > 0; c--) newRoom.board[idx][c] = newRoom.board[idx][c - 1];
                 newRoom.board[idx][0] = last;
@@ -488,6 +520,14 @@ export default function GamePageComponent(props) {
                 );
                 newRoom.controlData.row = idx;
                 newRoom.controlData.orientation = "RIGHT";
+
+                if (newRoom.keyFound === true && last.type === "ROOM_25") {
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 4);
+                    if (allPlayersOnCell === true) {
+                        newRoom.status = "won";
+                        setGameStatus("won");
+                    }
+                }
             }
             setArrowInfo({
                 idx: controlIdx,
@@ -504,8 +544,15 @@ export default function GamePageComponent(props) {
                 );
                 newRoom.controlData.row = idx;
                 newRoom.controlData.orientation = "UP";
-            }
-            if (controlDirection === "DOWN") {
+
+                if (newRoom.keyFound === true && first.type === "ROOM_25") {
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 0 && p.coordY === idx);
+                    if (allPlayersOnCell === true) {
+                        newRoom.status = "won";
+                        setGameStatus("won");
+                    }
+                }
+            } else if (controlDirection === "DOWN") {
                 const last = newRoom.board[4][idx];
                 for (let r = 4; r > 0; r--) newRoom.board[r][idx] = newRoom.board[r - 1][idx];
                 newRoom.board[0][idx] = last;
@@ -514,6 +561,14 @@ export default function GamePageComponent(props) {
                 );
                 newRoom.controlData.row = idx;
                 newRoom.controlData.orientation = "DOWN";
+
+                if (newRoom.keyFound === true && last.type === "ROOM_25") {
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 4 && p.coordY === idx);
+                    if (allPlayersOnCell === true) {
+                        newRoom.status = "won";
+                        setGameStatus("won");
+                    }
+                }
             }
             setArrowInfo({
                 idx: controlIdx,
@@ -637,8 +692,8 @@ export default function GamePageComponent(props) {
                                            background: "#444247",
                                            borderRadius: 4,
                                            color: "#f0f0f0",
-                                           boxShadow: p.status === "NORMAL" ? "0 0 10px #7ffa7f" : p.status === "BLIND" ? "0 0 10px #4b0082" : p.status === "FROZEN" ? "0 0 10px #c1e1f7" : p.status === "FLOODED" ? "0 0 10px #2b578c" : p.status === "IMPRISONED" ? "0 0 10px #ffe462" : p.status === "TRAPPED" ? "0 0 10px #d25b3f" : p.status === "DEAD" ? "0 0 10px #fd7077" : "0 0 10px #fd7077",
-                                           border: p.status === "NORMAL" ? "2px solid #7ffa7f" : p.status === "BLIND" ? "2px solid #4b0082" : p.status === "FROZEN" ? "2px solid #c1e1f7" : p.status === "FLOODED" ? "2px solid #2b578c" : p.status === "IMPRISONED" ? "2px solid #ffe462" : p.status === "TRAPPED" ? "2px solid #d25b3f" : p.status === "DEAD" ? "2px solid #fd7077" : "2px solid #fd7077",
+                                           boxShadow: p.status === "NORMAL" ? "0 0 10px #7ffa7f" : p.status === "BLIND" ? "0 0 10px #4b0082" : p.status === "FROZEN" ? "0 0 10px #c1e1f7" : (p.status === "FLOODED_FIRST" || p.status === "FLOODED_SECOND") ? "0 0 10px #2b578c" : p.status === "IMPRISONED" ? "0 0 10px #ffe462" : p.status === "TRAPPED" ? "0 0 10px #d25b3f" : p.status === "DEAD" ? "0 0 10px #fd7077" : "0 0 10px #fd7077",
+                                           border: p.status === "NORMAL" ? "2px solid #7ffa7f" : p.status === "BLIND" ? "2px solid #4b0082" : p.status === "FROZEN" ? "2px solid #c1e1f7" : (p.status === "FLOODED_FIRST" || p.status === "FLOODED_SECOND") ? "2px solid #2b578c" : p.status === "IMPRISONED" ? "2px solid #ffe462" : p.status === "TRAPPED" ? "2px solid #d25b3f" : p.status === "DEAD" ? "2px solid #fd7077" : "2px solid #fd7077",
                                        }}>
                                     <Typography fontWeight="bold">
                                         {p.clientName}
@@ -653,7 +708,7 @@ export default function GamePageComponent(props) {
                                             <span style={{color: "#4b0082", marginLeft: 8}}>(слепота)</span>}
                                         {p.status === "FROZEN" &&
                                             <span style={{color: "#c1e1f7", marginLeft: 8}}>(обморожение)</span>}
-                                        {p.status === "FLOODED" &&
+                                        {(p.status === "FLOODED_FIRST" || p.status === "FLOODED_SECOND") &&
                                             <span style={{color: "#2b578c", marginLeft: 8}}>(утопление)</span>}
                                         {p.status === "IMPRISONED" &&
                                             <span style={{color: "#ffe462", marginLeft: 8}}>(в заключении)</span>}
@@ -791,7 +846,7 @@ export default function GamePageComponent(props) {
                                             boxShadow: '0 0 10px #4fc3f7',
                                             "&:hover": {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
                                         }}
-                                        disabled={room.status === "waiting"}
+                                        disabled={room.status !== "started"}
                                         onClick={() => setSheetOpen(true)}>
                                     Карточка вашего персонажа
                                 </Button>
