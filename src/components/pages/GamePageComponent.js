@@ -265,7 +265,7 @@ export default function GamePageComponent(props) {
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "PUSH") {
-            const candidatesFound = roomData.players.some(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName && myPlayer.status !== "IMPRISONED");
+            const candidatesFound = roomData.players.some(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName && myPlayer.status !== "IMPRISONED" && myPlayer.coordX !== 2 && myPlayer.coordY !== 2);
             if (candidatesFound) {
                 const candidates = roomData.players.filter(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName);
                 setSelectablePlayers(candidates);
@@ -326,6 +326,18 @@ export default function GamePageComponent(props) {
         return cells;
     }
 
+    function getHiddenCells(roomData) {
+        const cells = [];
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === false)) {
+                    cells.push({i: i, j: j});
+                }
+            }
+        }
+        return cells;
+    }
+
     function resolveActionOnCell(i, j) {
         let myPlayer = room.players.find(p => p.clientName === props.username);
         if (actionRequest.type === "LOOK") {
@@ -343,48 +355,109 @@ export default function GamePageComponent(props) {
             newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
 
             resolveRoomFunction(newRoom, p, i, j);
+        } else if (actionRequest.type === "SWAP") {
+            let newRoom = {...room};
+            let x = myPlayer.coordX;
+            let y = myPlayer.coordY
+            const temp = newRoom.board[x][y];
+            newRoom.board[x][y] = newRoom.board[i][j];
+            newRoom.board[i][j] = temp;
+            newRoom.players = newRoom.players.map(pl =>
+                pl.coordX === x && pl.coordY === y ? {...pl, coordX: i, coordY: j} : pl
+            );
+            setRoom(newRoom);
+            goToNextAction(newRoom);
         }
     }
 
     /* Здесь нужно обрабатывать все обновления статусов после движения */
     function resolveRoomFunction(newRoom, player, i, j) {
-        if (newRoom.board[i][j].type === "FREEZER_ROOM") {
+        if (newRoom.board[i][j].type === "EMPTY_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "FROZEN"} : pl
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
+        } else if (newRoom.board[i][j].type === "OBSERVER_ROOM") {
+            setSelectableCells(getAllCells());
+            setActionRequest({type: "LOOK", player});
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+            setRoom(newRoom);
+            return;
+        } else if (newRoom.board[i][j].type === "MOVING_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+            let hiddenCells = getHiddenCells(newRoom);
+            if (hiddenCells.length > 0) {
+                setSelectableCells(hiddenCells);
+                setActionRequest({type: "SWAP", player});
+                setRoom(newRoom);
+                return;
+            }
         } else if (newRoom.board[i][j].type === "WHIRLPOOL_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, coordX: 2, coordY: 2} : pl
+                pl.clientName === player.clientName ? {...pl, coordX: 2, coordY: 2, status: "NORMAL"} : pl
             );
-        } else if (newRoom.board[i][j].type === "KEY_ROOM") {
-            setKeyFound(true);
-            newRoom.keyFound = true;
+        } else if (newRoom.board[i][j].type === "JAIL_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "IMPRISONED"} : pl
+            );
         } else if (newRoom.board[i][j].type === "DARK_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "BLIND"} : pl
             );
+        } else if (newRoom.board[i][j].type === "FREEZER_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "FROZEN"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "ACID_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.coordX === i && pl.coordY === j ? {...pl, status: "DEAD"} : pl
+            );
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+
+            if (newRoom.players.some(pl => pl.status === "DEAD")) {
+                newRoom.status = "lost";
+                setGameStatus("lost");
+            }
         } else if (newRoom.board[i][j].type === "DEATH_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "DEAD"} : pl
             );
             newRoom.status = "lost";
             setGameStatus("lost");
-        } else if (newRoom.board[i][j].type === "OBSERVER_ROOM") {
-            setSelectableCells(getAllCells());
-            setActionRequest({type: "LOOK", myPlayer});
-            setRoom(newRoom);
-            return;
-        } else if (newRoom.board[i][j].type === "JAIL_ROOM") {
+        } else if (newRoom.board[i][j].type === "KEY_ROOM") {
+            setKeyFound(true);
+            newRoom.keyFound = true;
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "IMPRISONED"} : pl
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "CONTROL_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+        }  else if (newRoom.board[i][j].type === "TUNNEL_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "CORRIDOR_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
         } else if (newRoom.board[i][j].type === "FLOODED_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "FLOODED"} : pl
             );
-        } else if (newRoom.board[i][j].type === "TRAPPED_ROOM") {
+        } else if (newRoom.board[i][j].type === "TRAP_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "TRAPPED"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "TORTURE_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
         }
         setRoom(newRoom);
@@ -828,7 +901,15 @@ export default function GamePageComponent(props) {
                                                     component="button"
                                                     onClick={() => {
                                                         if (!isReady && room.currentPhase === 1) {
-                                                            setSelectedActions([a.value, selectedActions[1]])
+                                                            if (myPlayer.status === "FROZEN") {
+                                                                if (a.value === "NONE") {
+                                                                    setSelectedActions([a.value, "LOOK"]);
+                                                                } else {
+                                                                    setSelectedActions([a.value, "NONE"]);
+                                                                }
+                                                            } else {
+                                                                setSelectedActions([a.value, selectedActions[1]]);
+                                                            }
                                                         }
                                                     }
                                                     }
@@ -868,7 +949,15 @@ export default function GamePageComponent(props) {
                                                     component="button"
                                                     onClick={() => {
                                                         if (!isReady && room.currentPhase === 1) {
-                                                            setSelectedActions([selectedActions[0], a.value]);
+                                                            if (myPlayer.status === "FROZEN") {
+                                                                if (a.value === "NONE") {
+                                                                    setSelectedActions(["LOOK", a.value]);
+                                                                } else {
+                                                                    setSelectedActions(["NONE", a.value]);
+                                                                }
+                                                            } else {
+                                                                setSelectedActions([selectedActions[0], a.value]);
+                                                            }
                                                         }
                                                     }
                                                     }
