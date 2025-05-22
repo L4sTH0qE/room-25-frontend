@@ -257,8 +257,15 @@ export default function GamePageComponent(props) {
             setGameStatus("lost");
             setRoom(roomData);
             goToNextAction(roomData);
-        } else if (actionType === "LOOK" || actionType === "MOVE") {
-            if (actionType === "MOVE" && myPlayer.status === "IMPRISONED") {
+        } else if (actionType === "LOOK") {
+            if (myPlayer.status === "BLIND") {
+                setNoneDialogOpen(true);
+            } else {
+                setSelectableCells(getAdjacentCells(myPlayer, roomData));
+                setActionRequest({type: actionType, myPlayer});
+            }
+        } else if (actionType === "MOVE") {
+            if (myPlayer.status === "IMPRISONED") {
                 const availableCells = getImprisonedCells(myPlayer, roomData);
                 if (availableCells.length === 0) {
                     setNoneDialogOpen(true);
@@ -266,10 +273,8 @@ export default function GamePageComponent(props) {
                     setSelectableCells(availableCells);
                     setActionRequest({type: actionType, myPlayer});
                 }
-            } else if (actionType === "LOOK" && myPlayer.status === "BLIND") {
-                setNoneDialogOpen(true);
             } else {
-                setSelectableCells(getAdjacentCells(myPlayer, roomData));
+                setSelectableCells(getMoveCells(myPlayer, roomData));
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "PUSH") {
@@ -311,6 +316,19 @@ export default function GamePageComponent(props) {
         return cells;
     }
 
+    function getMoveCells(player, roomData) {
+        const cells = [];
+        const dx = [-1, 0, 1, 0], dy = [0, 1, 0, -1];
+        for (let d = 0; d < 4; d++) {
+            const nx = player.coordX + dx[d];
+            const ny = player.coordY + dy[d];
+            if (roomData.board?.[nx]?.[ny] && !(roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "FLOODED_ROOM")) {
+                cells.push({i: nx, j: ny});
+            }
+        }
+        return cells;
+    }
+
     function getImprisonedCells(player, roomData) {
         const cells = [];
         const dx = [-1, 0, 1, 0], dy = [0, 1, 0, -1];
@@ -339,6 +357,18 @@ export default function GamePageComponent(props) {
         for (let i = 0; i < 4; i++) {
             for (let j = 0; j < 4; j++) {
                 if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === false)) {
+                    cells.push({i: i, j: j});
+                }
+            }
+        }
+        return cells;
+    }
+
+    function getTunnelCells(roomData) {
+        const cells = [];
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === true) && (roomData.board?.[i]?.[j].type === "TUNNEL_ROOM")) {
                     cells.push({i: i, j: j});
                 }
             }
@@ -412,6 +442,17 @@ export default function GamePageComponent(props) {
                 setRoom(newRoom);
                 return;
             }
+        } else if (newRoom.board[i][j].type === "TUNNEL_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+            let tunnelCells = getTunnelCells(newRoom);
+            if (tunnelCells.length > 0) {
+                setSelectableCells(tunnelCells);
+                setActionRequest({type: "MOVE", player});
+                setRoom(newRoom);
+                return;
+            }
         } else if (newRoom.board[i][j].type === "WHIRLPOOL_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, coordX: 2, coordY: 2, status: "NORMAL"} : pl
@@ -465,10 +506,6 @@ export default function GamePageComponent(props) {
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
         } else if (newRoom.board[i][j].type === "CONTROL_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
-            );
-        }  else if (newRoom.board[i][j].type === "TUNNEL_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
@@ -669,7 +706,6 @@ export default function GamePageComponent(props) {
                     </Box>
                 </Box>
 
-
                 {/* Две колонки: инфа по игрокам слева, поле справа */}
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={12} md={3} lg={2}>
@@ -783,7 +819,7 @@ export default function GamePageComponent(props) {
                                                                              setSelectablePlayers([]);
                                                                              let player = selectablePlayers.find(player => player.clientName === playerOnCell.clientName);
                                                                              setSelectedPlayer(player);
-                                                                             setSelectableCells(getAdjacentCells(myPlayer, room));
+                                                                             setSelectableCells(getMoveCells(myPlayer, room));
                                                                          }
                                                                      }}
                                                         />);
@@ -853,7 +889,6 @@ export default function GamePageComponent(props) {
                             </Stack>
                         </Grid>
 
-
                         {/* Стрелка наплавления сдвига */}
                         {arrowInfo && (
                             (arrowInfo.direction === "LEFT" || arrowInfo.direction === "RIGHT") && (
@@ -898,7 +933,6 @@ export default function GamePageComponent(props) {
                                 />
                             )
                         )}
-
                     </Grid>
                 </Grid>
 
