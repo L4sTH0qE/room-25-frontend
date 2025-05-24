@@ -58,6 +58,12 @@ import arrowImg from '../../assets/images/actions/CONTROL_DIRECTION.png'
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import Dialog from "@mui/material/Dialog";
+import frankIcon from "../../assets/images/characters/frank/FRANK_TOKEN.png";
+import kevinIcon from "../../assets/images/characters/kevin/KEVIN_TOKEN.png";
+import maxIcon from "../../assets/images/characters/max/MAX_TOKEN.png";
+import emmettIcon from "../../assets/images/characters/emmett/EMMETT_TOKEN.png";
+import aliceIcon from "../../assets/images/characters/alice/ALICE_TOKEN.png";
+import jenniferIcon from "../../assets/images/characters/jennifer/JENNIFER_TOKEN.png";
 
 /**
  * Functional component that describes Game page.
@@ -85,26 +91,30 @@ export default function GamePageComponent(props) {
     const [noneDialogOpen, setNoneDialogOpen] = useState(false);
 
     const [controlDialogOpen, setControlDialogOpen] = useState(false);
+    const [controlRoomDialogOpen, setControlRoomDialogOpen] = useState(false);
     const [controlType, setControlType] = useState(null);
     const [controlIdx, setControlIdx] = useState(0);
     const [controlDirection, setControlDirection] = useState("NONE");
-    const [controlOptions, setControlOptions] = useState([
+    const controlOptions = [
         {value: "ROW", label: "Ряд"},
         {value: "COLUMN", label: "Столбец"}
-    ]);
-    const [controlRowOptions, setControlRowOptions] = useState([
+    ];
+    const controlRowOptions = [
         {value: "LEFT", label: "Влево"},
         {value: "RIGHT", label: "Вправо"}
-    ]);
-    const [controlColumnOptions, setControlColumnOptions] = useState([
+    ];
+    const controlColumnOptions = [
         {value: "UP", label: "Вверх"},
         {value: "DOWN", label: "Вниз"}
-    ]);
+    ];
+    const controlRows = [1, 2, 4, 5];
 
     const [arrowInfo, setArrowInfo] = useState(null);
 
     const [gameStatus, setGameStatus] = useState(null);
     const [keyFound, setKeyFound] = useState(false);
+    const [isDead, setIsDead] = useState(false);
+    const [isPushed, setIsPushed] = useState(false);
 
     const cellTypeImages = {
         CENTRAL_ROOM: centralRoomImg,
@@ -154,6 +164,15 @@ export default function GamePageComponent(props) {
         JENNIFER: jenniferSheetImg,
     }
 
+    const characterIcons = {
+        FRANK: frankIcon,
+        KEVIN: kevinIcon,
+        MAX: maxIcon,
+        EMMETT: emmettIcon,
+        ALICE: aliceIcon,
+        JENNIFER: jenniferIcon,
+    }
+
     const onToHome = () => {
         navigate("/");
     };
@@ -186,12 +205,15 @@ export default function GamePageComponent(props) {
                     setKeyFound(roomData.keyFound);
 
                     if (roomData.currentPhase === 1) {
+                        setSelectedActions([null, null]);
                         setIsReady(false);
                     } else {
                         setWaitingActions(false);
                         const curPlayer = roomData.players[(roomData.currentPlayer + ((1 - roomData.currentTurn) % roomData.numberOfPlayers + roomData.numberOfPlayers)) % roomData.numberOfPlayers];
                         setCurrentPlayer(curPlayer);
-                        if (curPlayer.clientName === props.username) {
+                        if (roomData.waitingEffect === props.username) {
+                            setIsPushed(true);
+                        } else if (curPlayer.clientName === props.username && roomData.waitingEffect === "") {
                             let playerAction = roomData.currentPhase - 2 === 0 ? curPlayer.playerAction.firstAction : curPlayer.playerAction.secondAction;
                             handleAction(curPlayer, playerAction, roomData);
                         }
@@ -201,7 +223,6 @@ export default function GamePageComponent(props) {
                 // Подписываемся на топик для передачи действия при PUSH.
                 client.subscribe(`/topic/room/${id}/push-effect`, (message) => {
                     const roomData = JSON.parse(message.body);
-                    setRoom(roomData);
                     setArrowInfo({
                         idx: roomData.controlData.row,
                         direction: roomData.controlData.orientation
@@ -210,15 +231,16 @@ export default function GamePageComponent(props) {
                     setKeyFound(roomData.keyFound);
 
                     if (roomData.currentPhase === 1) {
+                        setSelectedActions([null, null]);
                         setIsReady(false);
                     } else {
                         setWaitingActions(false);
                         const curPlayer = roomData.players.find(pl => pl.clientName === roomData.waitingEffect);
                         if (curPlayer.clientName === props.username) {
-                            roomData.waitingEffect = "";
-                            resolveRoomFunction(roomData, curPlayer, curPlayer.coordX, curPlayer.coordY)
+                            setIsPushed(true);
                         }
                     }
+                    setRoom(roomData);
                 });
 
                 setStompClient(client);
@@ -273,18 +295,18 @@ export default function GamePageComponent(props) {
     function handleAction(curPlayer, actionType, roomData) {
         let myPlayer = roomData.players.find(pl => pl.clientName === props.username);
         if (myPlayer.status === "TRAPPED" && actionType !== "MOVE") {
-            roomData.players = roomData.players.map(pl =>
+            let newRoom = {...roomData};
+            newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === props.username ? {...pl, status: "DEAD"} : pl
             );
-            roomData.status = "lost";
-            setGameStatus("lost");
-            setRoom(roomData);
-            goToNextAction(roomData);
+            newRoom.status = "lost";
+            setRoom(newRoom);
+            setIsDead(true);
         } else if (actionType === "LOOK") {
             if (myPlayer.status === "BLIND") {
                 setNoneDialogOpen(true);
             } else {
-                setSelectableCells(getAdjacentCells(myPlayer, roomData));
+                setSelectableCells(getLookCells(myPlayer, roomData));
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "MOVE") {
@@ -296,7 +318,7 @@ export default function GamePageComponent(props) {
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "PUSH") {
-            const candidatesFound = roomData.players.some(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName && myPlayer.status !== "IMPRISONED" && myPlayer.coordX !== 2 && myPlayer.coordY !== 2);
+            const candidatesFound = roomData.players.some(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName && myPlayer.status !== "IMPRISONED" && !(myPlayer.coordX === 2 && myPlayer.coordY === 2));
             if (candidatesFound) {
                 const candidates = roomData.players.filter(p => p.coordX === myPlayer.coordX && p.coordY === myPlayer.coordY && p.clientName !== myPlayer.clientName);
                 setSelectablePlayers(candidates);
@@ -305,30 +327,54 @@ export default function GamePageComponent(props) {
                 setNoneDialogOpen(true);
             }
         } else if (actionType === "CONTROL") {
-            setControlDialogOpen(true);
-            if (myPlayer.coordX !== 2) {
-                setControlType("ROW");
-                setControlIdx(myPlayer.coordX);
-                setControlDirection("LEFT");
-            } else if (myPlayer.coordY !== 2) {
-                setControlType("COLUMN");
-                setControlIdx(myPlayer.coordY);
-                setControlDirection("UP");
+            if (myPlayer.coordX === 2 && myPlayer.coordY === 2) {
+                setNoneDialogOpen(true);
+            } else {
+                setControlDialogOpen(true);
+                if (myPlayer.coordX !== 2) {
+                    setControlType("ROW");
+                    setControlIdx(myPlayer.coordX);
+                    if (roomData.controlData.row === myPlayer.coordX && roomData.controlData.orientation === "RIGHT") {
+                        setControlDirection("RIGHT");
+                    } else {
+                        setControlDirection("LEFT");
+                    }
+                } else if (myPlayer.coordY !== 2) {
+                    setControlType("COLUMN");
+                    setControlIdx(myPlayer.coordY);
+                    if (roomData.controlData.row === myPlayer.coordY && roomData.controlData.orientation === "DOWN") {
+                        setControlDirection("DOWN");
+                    } else {
+                        setControlDirection("UP");
+                    }
+                }
+                setActionRequest({type: "CONTROL", myPlayer});
             }
-            setActionRequest({type: "CONTROL", myPlayer});
         } else if (actionType === "NONE") {
             setNoneDialogOpen(true);
         }
     }
 
-    function getAdjacentCells(player, roomData) {
+    function getLookCells(player, roomData) {
         const cells = [];
         const dx = [-1, 0, 1, 0], dy = [0, 1, 0, -1];
         for (let d = 0; d < 4; d++) {
             const nx = player.coordX + dx[d];
             const ny = player.coordY + dy[d];
             if (roomData.board?.[nx]?.[ny]) {
-                cells.push({i: nx, j: ny});
+                if (roomData.board?.[player.coordX]?.[player.coordY].type === "CORRIDOR_ROOM") {
+                    if (roomData.board?.[player.coordX]?.[player.coordY].vertical) {
+                        if (ny === player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    } else {
+                        if (ny !== player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    }
+                } else {
+                    cells.push({i: nx, j: ny});
+                }
             }
         }
         return cells;
@@ -341,7 +387,23 @@ export default function GamePageComponent(props) {
             const nx = player.coordX + dx[d];
             const ny = player.coordY + dy[d];
             if (roomData.board?.[nx]?.[ny] && !(roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "FLOODED_ROOM")) {
-                cells.push({i: nx, j: ny});
+                if (roomData.board?.[player.coordX]?.[player.coordY].type === "CORRIDOR_ROOM") {
+                    if (roomData.board?.[player.coordX]?.[player.coordY].vertical) {
+                        if (ny === player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    } else {
+                        if (ny !== player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    }
+                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "TORTURE_ROOM") {
+                    if (roomData.players.some(p => p.coordX === nx && p.coordY === ny)) {
+                        cells.push({i: nx, j: ny});
+                    }
+                } else {
+                    cells.push({i: nx, j: ny});
+                }
             }
         }
         return cells;
@@ -362,8 +424,8 @@ export default function GamePageComponent(props) {
 
     function getAllCells() {
         const cells = [];
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
                 cells.push({i: i, j: j});
             }
         }
@@ -372,8 +434,8 @@ export default function GamePageComponent(props) {
 
     function getHiddenCells(roomData) {
         const cells = [];
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
                 if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === false)) {
                     cells.push({i: i, j: j});
                 }
@@ -384,8 +446,8 @@ export default function GamePageComponent(props) {
 
     function getTunnelCells(roomData) {
         const cells = [];
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
                 if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === true) && (roomData.board?.[i]?.[j].type === "TUNNEL_ROOM")) {
                     cells.push({i: i, j: j});
                 }
@@ -403,21 +465,55 @@ export default function GamePageComponent(props) {
             });
             setLookDialogOpen(true);
         } else if (actionRequest.type === "MOVE") {
-            const p = myPlayer;
             let newRoom = {...room};
+            if (myPlayer.coordY === j && newRoom.board[i][j].type === "CORRIDOR_ROOM") {
+                newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true, vertical: true};
+            } else {
+                newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
+            }
+            let x = myPlayer.coordX;
+            let y = myPlayer.coordY;
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
+                pl.clientName === myPlayer.clientName ? {...pl, coordX: i, coordY: j} : pl
             );
-            newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
-            resolveRoomFunction(newRoom, p, i, j);
+            if (newRoom.board[x][y].type === "TORTURE_ROOM") {
+                newRoom.players = newRoom.players.map(pl =>
+                    pl.coordX === x && pl.coordY === y ? {...pl, status: "DEAD"} : pl
+                );
+                if (newRoom.players.some(pl => pl.status === "DEAD")) {
+                    newRoom.status = "lost";
+                    setGameStatus("lost");
+                    setRoom(newRoom);
+                    goToNextAction(newRoom);
+                    return;
+                }
+            }
+            resolveRoomFunction(newRoom, myPlayer, i, j);
         } else if (actionRequest.type === "PUSH") {
-            const p = selectedPlayer;
             let newRoom = {...room};
+            if (selectedPlayer.coordY === j && newRoom.board[i][j].type === "CORRIDOR_ROOM") {
+                newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true, vertical: true};
+            } else {
+                newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
+            }
+            let x = selectedPlayer.coordX;
+            let y = selectedPlayer.coordY;
             newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
+                pl.clientName === selectedPlayer.clientName ? {...pl, coordX: i, coordY: j} : pl
             );
-            newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
-            newRoom.waitingEffect = p.clientName;
+            if (newRoom.board[x][y].type === "TORTURE_ROOM") {
+                newRoom.players = newRoom.players.map(pl =>
+                    pl.coordX === x && pl.coordY === y ? {...pl, status: "DEAD"} : pl
+                );
+                if (newRoom.players.some(p => p.status === "DEAD")) {
+                    newRoom.status = "lost";
+                    setGameStatus("lost");
+                    setRoom(newRoom);
+                    goToNextAction(newRoom);
+                    return;
+                }
+            }
+            newRoom.waitingEffect = selectedPlayer.clientName;
             setRoom(newRoom);
             handlePushEvent(newRoom);
         } else if (actionRequest.type === "SWAP") {
@@ -441,7 +537,7 @@ export default function GamePageComponent(props) {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
-        } else if (newRoom.board[i][j].type === "OBSERVER_ROOM") {
+        } else if (newRoom.board[i][j].type === "OBSERVATION_ROOM") {
             setSelectableCells(getAllCells());
             setActionRequest({type: "LOOK", player});
             newRoom.players = newRoom.players.map(pl =>
@@ -460,6 +556,14 @@ export default function GamePageComponent(props) {
                 setRoom(newRoom);
                 return;
             }
+        } else if (newRoom.board[i][j].type === "CONTROL_ROOM") {
+            setControlRoomDialogOpen(true);
+            setActionRequest({type: "CONTROL", player});
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
+            setRoom(newRoom);
+            return;
         } else if (newRoom.board[i][j].type === "TUNNEL_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
@@ -487,6 +591,10 @@ export default function GamePageComponent(props) {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "FROZEN"} : pl
             );
+        } else if (newRoom.board[i][j].type === "CORRIDOR_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+            );
         } else if (newRoom.board[i][j].type === "ACID_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.coordX === i && pl.coordY === j ? {...pl, status: "DEAD"} : pl
@@ -499,9 +607,17 @@ export default function GamePageComponent(props) {
                 newRoom.status = "lost";
                 setGameStatus("lost");
             }
+        } else if (newRoom.board[i][j].type === "FLOODED_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "FLOODED_FIRST"} : pl
+            );
         } else if (newRoom.board[i][j].type === "TRAP_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "TRAPPED"} : pl
+            );
+        } else if (newRoom.board[i][j].type === "TORTURE_ROOM") {
+            newRoom.players = newRoom.players.map(pl =>
+                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
         } else if (newRoom.board[i][j].type === "DEATH_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
@@ -520,22 +636,6 @@ export default function GamePageComponent(props) {
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
         } else if (newRoom.board[i][j].type === "ROOM_25") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
-            );
-        } else if (newRoom.board[i][j].type === "CONTROL_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
-            );
-        } else if (newRoom.board[i][j].type === "CORRIDOR_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
-            );
-        } else if (newRoom.board[i][j].type === "FLOODED_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "FLOODED_FIRST"} : pl
-            );
-        } else if (newRoom.board[i][j].type === "TORTURE_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
@@ -560,7 +660,7 @@ export default function GamePageComponent(props) {
                 newRoom.controlData.orientation = "LEFT";
 
                 if (newRoom.keyFound === true && first.type === "ROOM_25") {
-                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 0);
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 4);
                     if (allPlayersOnCell === true) {
                         newRoom.status = "won";
                         setGameStatus("won");
@@ -577,7 +677,7 @@ export default function GamePageComponent(props) {
                 newRoom.controlData.orientation = "RIGHT";
 
                 if (newRoom.keyFound === true && last.type === "ROOM_25") {
-                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 4);
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === idx && p.coordY === 0);
                     if (allPlayersOnCell === true) {
                         newRoom.status = "won";
                         setGameStatus("won");
@@ -601,7 +701,7 @@ export default function GamePageComponent(props) {
                 newRoom.controlData.orientation = "UP";
 
                 if (newRoom.keyFound === true && first.type === "ROOM_25") {
-                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 0 && p.coordY === idx);
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 4 && p.coordY === idx);
                     if (allPlayersOnCell === true) {
                         newRoom.status = "won";
                         setGameStatus("won");
@@ -618,7 +718,7 @@ export default function GamePageComponent(props) {
                 newRoom.controlData.orientation = "DOWN";
 
                 if (newRoom.keyFound === true && last.type === "ROOM_25") {
-                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 4 && p.coordY === idx);
+                    const allPlayersOnCell = newRoom.players.every(p => p.coordX === 0 && p.coordY === idx);
                     if (allPlayersOnCell === true) {
                         newRoom.status = "won";
                         setGameStatus("won");
@@ -635,6 +735,7 @@ export default function GamePageComponent(props) {
 
         setRoom(newRoom);
         setControlDialogOpen(false);
+        setControlRoomDialogOpen(false);
         goToNextAction(newRoom);
     }
 
@@ -658,10 +759,12 @@ export default function GamePageComponent(props) {
         setLookedCell(null);
         setLookDialogOpen(false);
         setNoneDialogOpen(false);
-
+        let newRoom = {...roomData};
+        newRoom.waitingEffect = "";
+        setRoom(newRoom);
         if (stompClient !== null) {
             stompClient.send(`/app/room/${id}/action`, {},
-                JSON.stringify(roomData),
+                JSON.stringify(newRoom),
             );
         }
     }
@@ -682,7 +785,7 @@ export default function GamePageComponent(props) {
                     boxShadow: '0 0 10px #4fc3f7',
                     maxWidth: '1000px',
                     margin: 'auto',
-                    marginTop: '3.5%',
+                    marginTop: '3.3%',
                     transform: 'translateY(-80%)',
                 }}>
                     <Typography variant="h4" sx={{color: "#f0f0f0", fontWeight: 700, opacity: 0.75}}>
@@ -827,7 +930,9 @@ export default function GamePageComponent(props) {
                                                         borderRadius: "5%",
                                                         border: isSelectable ? "1px solid #79eaff" : "1px solid #202020",
                                                         boxShadow: isSelectable ? "0 0 5px #79eaff" : "0 0 1px #202020",
+                                                        transform: cell.vertical ? "rotate(90deg)" : "",
                                                     }}
+
                                                 />
                                                 {room.players.filter(p => p.coordX === i && p.coordY === j).map((playerOnCell, idx) => {
                                                         const isSelectablePlayer = selectablePlayers.some(player => player.clientName === playerOnCell.clientName);
@@ -901,6 +1006,9 @@ export default function GamePageComponent(props) {
                                     <span style={{opacity: 0.75, fontWeight: "bold", display: 'block'}}>
                                 Фаза: {room.currentPhase === 1 ? "подготовка действий" : room.currentPhase === 2 ? "выполнение 1 действия" : "выполнение 2 действия"}
                             </span>
+                                    <span style={{fontWeight: "bold", display: 'block'}}>
+                                {keyFound ? "Ключ найден" : "Ключ не найден"}
+                            </span>
                                     <span style={{color: "#4fc3f7", fontWeight: 700, display: 'block'}}>
                                 Текущий игрок: {room.currentPhase !== 1 ? currentPlayer?.clientName || "(нет)" : "(нет)"}
                             </span>
@@ -926,7 +1034,7 @@ export default function GamePageComponent(props) {
                             </Stack>
                         </Grid>
 
-                        {/* Стрелка наплавления сдвига */}
+                        {/* Стрелка направления сдвига */}
                         {arrowInfo && (
                             (arrowInfo.direction === "LEFT" || arrowInfo.direction === "RIGHT") && (
                                 <img
@@ -935,7 +1043,7 @@ export default function GamePageComponent(props) {
                                     style={{
                                         position: "absolute",
                                         left: arrowInfo.direction === "LEFT" ? `65%` : `32.8%`,
-                                        top: 360 + arrowInfo.idx * 113,
+                                        top: 370 + arrowInfo.idx * 113,
                                         pointerEvents: "none",
                                         zIndex: 30,
                                         width: 40,
@@ -953,8 +1061,8 @@ export default function GamePageComponent(props) {
                                     alt="arrow"
                                     style={{
                                         position: "absolute",
-                                        left: `${36.7 + arrowInfo.idx * 6}%`,
-                                        top: arrowInfo.direction === "UP" ? 885 : 287,
+                                        left: `${36.8 + arrowInfo.idx * 6}%`,
+                                        top: arrowInfo.direction === "UP" ? 890 : 300,
                                         pointerEvents: "none",
                                         zIndex: 30,
                                         width: 40,
@@ -1216,6 +1324,7 @@ export default function GamePageComponent(props) {
                         </Button>
                     </DialogActions>
                 </Dialog>
+
                 {/* Модальное окно, если действие NONE */}
                 <Dialog
                     PaperProps={{
@@ -1262,13 +1371,13 @@ export default function GamePageComponent(props) {
                         </Button>
                     </DialogActions>
                 </Dialog>
+
                 {/* Модальное окно, если действие CONTROL */}
                 <Dialog
                     PaperProps={{
                         sx: {backgroundColor: 'rgba(35,38,49,0.98)', color: '#f0f0f0', position: 'relative'}
                     }}
-                    open={controlDialogOpen}
-                    onClose={() => setControlDialogOpen(false)} maxWidth="xs" fullWidth>
+                    open={controlDialogOpen}>
                     <DialogContent sx={{
                         background: "#29374e",
                         color: "#f0f0f0",
@@ -1282,7 +1391,7 @@ export default function GamePageComponent(props) {
                                 fontWeight: 'bold',
                                 fontSize: '140%',
                                 mb: 1
-                            }}>Линия сдвига (кроме центра)</Typography>
+                            }}>Линия сдвига</Typography>
                             <Box sx={{
                                 display: 'flex',
                                 flexDirection: 'row',
@@ -1342,22 +1451,6 @@ export default function GamePageComponent(props) {
                                 ))}
                             </Box>
                         </Box>
-
-                        {/*                        <Typography sx={{ mb: 1 }}>
-                            {controlType==="ROW" ? "Выберите ряд:" : "Выберите столбец:"}
-                        </Typography>
-                        <Stack direction="row" spacing={2} justifyContent="center" mb={2}>
-                            {(controlType === "ROW" ? rows : cols).map(idx =>
-                                <Button
-                                    key={idx}
-                                    variant={controlIdx === idx ? "contained" : "outlined"}
-                                    onClick={()=>setControlIdx(idx)}
-                                >
-                                    {idx+1}
-                                </Button>
-                            )}
-                        </Stack>*/}
-
                         <Box sx={{mb: 3, textAlign: 'center'}}>
                             <Typography sx={{
                                 color: '#d25b3f',
@@ -1477,12 +1570,258 @@ export default function GamePageComponent(props) {
                     </DialogActions>
                 </Dialog>
 
-                {/* Модальное окно, если победа */}
+                {/* Модальное окно, если в CONTROL_ROOM */}
                 <Dialog
                     PaperProps={{
                         sx: {backgroundColor: 'rgba(35,38,49,0.98)', color: '#f0f0f0', position: 'relative'}
                     }}
-                    open={gameStatus === "won"}>
+                    open={controlRoomDialogOpen}>
+                    <DialogContent sx={{
+                        background: "#29374e",
+                        color: "#f0f0f0",
+                        borderRadius: "0%",
+                        borderColor: "#29374e"
+                    }}>
+                        <Box sx={{mb: 3, textAlign: 'center'}}>
+                            <Typography sx={{
+                                color: '#d25b3f',
+                                fontFamily: 'Roboto, monospace',
+                                fontWeight: 'bold',
+                                fontSize: '140%',
+                                mb: 1
+                            }}>Линия сдвига</Typography>
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                alignItems: 'start',
+                                gap: 3,
+                                width: '100%'
+                            }}>
+                                {controlOptions.map(md => (
+                                    <Box key={md.value}
+                                         sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                        <ToggleButton
+                                            value={md.value}
+                                            selected={controlType === md.value}
+                                            onClick={() => {
+                                                if (md.value === "ROW") {
+                                                    setControlType("ROW");
+                                                    setControlIdx(null);
+                                                    setControlDirection(null);
+                                                } else {
+                                                    setControlType("COLUMN");
+                                                    setControlIdx(null);
+                                                    setControlDirection(null);
+                                                }
+                                            }}
+                                            sx={{
+                                                minWidth: 150,
+                                                maxWidth: 150,
+                                                color: lightBlue["50"],
+                                                backgroundColor: '#202020',
+                                                borderColor: '#4b8493',
+                                                borderRadius: 2,
+                                                fontFamily: 'Roboto, monospace',
+                                                fontSize: '110%',
+                                                fontWeight: 'bold',
+                                                mb: 0,
+                                                '&.Mui-selected': {color: '#f0f0f0', backgroundColor: '#5fbfcc'},
+                                                '&.Mui-selected:hover': {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
+                                            }}
+                                        >
+                                            {md.label}
+                                        </ToggleButton>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                        <Box sx={{mb: 3, textAlign: 'center'}}>
+                            <Typography sx={{
+                                color: '#d25b3f',
+                                fontFamily: 'Roboto, monospace',
+                                fontWeight: 'bold',
+                                fontSize: '140%',
+                                mb: 1
+                            }}>
+                                Номер линии
+                            </Typography>
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                alignItems: 'start',
+                                gap: 3,
+                                width: '100%'
+                            }}>
+                                {controlRows.map(idx => (
+                                    <Box key={idx - 1}
+                                         sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                        <ToggleButton
+                                            value={idx - 1}
+                                            selected={controlIdx === idx - 1}
+                                            onClick={() => {
+                                                setControlIdx(idx - 1);
+                                                setControlDirection(null);
+                                            }}
+                                            sx={{
+                                                minWidth: 100,
+                                                maxWidth: 100,
+                                                color: lightBlue["50"],
+                                                backgroundColor: '#202020',
+                                                borderColor: '#4b8493',
+                                                borderRadius: 2,
+                                                fontFamily: 'Roboto, monospace',
+                                                fontSize: '110%',
+                                                fontWeight: 'bold',
+                                                mb: 0,
+                                                '&.Mui-selected': {color: '#f0f0f0', backgroundColor: '#5fbfcc'},
+                                                '&.Mui-selected:hover': {color: '#f0f0f0', backgroundColor: '#5fbfcc'}
+                                            }}
+                                        >
+                                            {idx}
+                                        </ToggleButton>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                        <Box sx={{mb: 3, textAlign: 'center'}}>
+                            <Typography sx={{
+                                color: '#d25b3f',
+                                fontFamily: 'Roboto, monospace',
+                                fontWeight: 'bold',
+                                fontSize: '140%',
+                                mb: 1
+                            }}>Направление сдвига</Typography>
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                alignItems: 'start',
+                                gap: 3,
+                                width: '100%'
+                            }}>
+                                {controlType === "ROW" ?
+                                    controlRowOptions.map(md => (
+                                        <Box key={md.value}
+                                             sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                            <ToggleButton
+                                                value={md.value}
+                                                selected={controlDirection === md.value}
+                                                onClick={() => {
+                                                    if (md.value === "LEFT") {
+                                                        if (!(room.controlData.row === controlIdx && room.controlData.orientation === "RIGHT")) {
+                                                            setControlDirection("LEFT");
+                                                        }
+                                                    } else {
+                                                        if (!(room.controlData.row === controlIdx && room.controlData.orientation === "LEFT")) {
+                                                            setControlDirection("RIGHT");
+                                                        }
+                                                    }
+                                                }
+                                                }
+                                                sx={{
+                                                    minWidth: 150,
+                                                    maxWidth: 150,
+                                                    color: lightBlue["50"],
+                                                    backgroundColor: '#202020',
+                                                    borderColor: '#4b8493',
+                                                    borderRadius: 2,
+                                                    fontFamily: 'Roboto, monospace',
+                                                    fontSize: '110%',
+                                                    fontWeight: 'bold',
+                                                    mb: 0,
+                                                    '&.Mui-selected': {color: '#f0f0f0', backgroundColor: '#5fbfcc'},
+                                                    '&.Mui-selected:hover': {
+                                                        color: '#f0f0f0',
+                                                        backgroundColor: '#5fbfcc'
+                                                    }
+                                                }}
+                                            >
+                                                {md.label}
+                                            </ToggleButton>
+                                        </Box>
+                                    )) :
+                                    controlColumnOptions.map(md => (
+                                        <Box key={md.value}
+                                             sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                            <ToggleButton
+                                                value={md.value}
+                                                selected={controlDirection === md.value}
+                                                onClick={() => {
+                                                    if (md.value === "UP") {
+                                                        if (!(room.controlData.row === controlIdx && room.controlData.orientation === "DOWN")) {
+                                                            setControlDirection("UP");
+                                                        }
+                                                    } else {
+                                                        if (!(room.controlData.row === controlIdx && room.controlData.orientation === "UP")) {
+                                                            setControlDirection("DOWN");
+                                                        }
+                                                    }
+                                                }
+                                                }
+                                                sx={{
+                                                    minWidth: 150,
+                                                    maxWidth: 150,
+                                                    color: lightBlue["50"],
+                                                    backgroundColor: '#202020',
+                                                    borderColor: '#4b8493',
+                                                    borderRadius: 2,
+                                                    fontFamily: 'Roboto, monospace',
+                                                    fontSize: '110%',
+                                                    fontWeight: 'bold',
+                                                    mb: 0,
+                                                    '&.Mui-selected': {color: '#f0f0f0', backgroundColor: '#5fbfcc'},
+                                                    '&.Mui-selected:hover': {
+                                                        color: '#f0f0f0',
+                                                        backgroundColor: '#5fbfcc'
+                                                    }
+                                                }}
+                                            >
+                                                {md.label}
+                                            </ToggleButton>
+                                        </Box>
+                                    ))}
+                            </Box>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions sx={{background: "#29374e", color: "#f0f0f0"}}>
+                        <Button
+                            onClick={() => {
+                                if (!(controlIdx === null || controlDirection === null || controlType === null)) {
+                                    resolveControlAction();
+                                }
+                            }}
+                            sx={{
+                                borderRadius: '10px',
+                                width: '120px',
+                                color: '#f0f0f0',
+                                backgroundColor: '#334871',
+                                fontFamily: 'Roboto, monospace',
+                                fontSize: '110%',
+                                fontWeight: 'bold',
+                                "&:hover": {color: '#ffffff', backgroundColor: '#436881'}
+                            }}
+                        >Сдвинуть</Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Модальное окно, если умер */}
+                <Dialog
+                    PaperProps={{
+                        sx: {
+                            backgroundColor: 'rgba(35,38,49,0.98)',
+                            color: '#f0f0f0',
+                            position: 'relative',
+                            minWidth: 500,
+                            minHeight: 400
+                        }
+                    }}
+                    open={isDead}
+                    onClose={() => {
+                        setGameStatus("lost");
+                        goToNextAction(room);
+                    }}>
                     <DialogContent className="custom-scrollbar" sx={{
                         background: "#29374e",
                         color: "#f0f0f0",
@@ -1493,8 +1832,137 @@ export default function GamePageComponent(props) {
                         <Stack gap={2} alignItems="center">
                             <>
                                 <Typography sx={{fontSize: 24, fontWeight: 700, mb: 2}}>
-                                    {`Вы выиграли! Но шоу должно продолжаться...`}
+                                    {`Вы умерли!`}
                                 </Typography>
+                                <img src={characterDeadTokens[myPlayer.character]} alt={"dead_image"} width={128}
+                                     style={{
+                                         display: "block",
+                                         borderRadius: 12,
+                                         borderColor: "#f0f0f0",
+                                         border: '3px solid #d25b3f',
+                                         boxShadow: '0 0 15px #d25b3f'
+                                     }}/>
+                            </>
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{background: "#29374e", color: "#f0f0f0", justifyContent: 'center'}}>
+                        <Button
+                            onClick={() => {
+                                setGameStatus("lost");
+                                goToNextAction(room);
+                            }}
+                            sx={{
+                                borderRadius: '12px',
+                                width: '120px',
+                                color: '#f0f0f0',
+                                backgroundColor: '#334871',
+                                fontFamily: 'Roboto, monospace',
+                                fontSize: '100%',
+                                fontWeight: 'bold',
+                                "&:hover": {color: '#ffffff', backgroundColor: '#435881'}
+                            }}
+                        >
+                            Закрыть
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Модальное окно, если толкнули */}
+                <Dialog
+                    PaperProps={{
+                        sx: {
+                            backgroundColor: 'rgba(35,38,49,0.98)',
+                            color: '#f0f0f0',
+                            position: 'relative',
+                            minWidth: 500,
+                            minHeight: 400
+                        }
+                    }}
+                    open={isPushed}
+                    onClose={() => {
+                        setIsPushed(false);
+                        resolveRoomFunction(room, myPlayer, myPlayer.coordX, myPlayer.coordY)
+                    }}>
+                    <DialogContent className="custom-scrollbar" sx={{
+                        background: "#29374e",
+                        color: "#f0f0f0",
+                        borderRadius: "0%",
+                        borderColor: "#29374e",
+                        minHeight: '200px',
+                    }}>
+                        <Stack gap={2} alignItems="center">
+                            <>
+                                <Typography sx={{fontSize: 24, fontWeight: 700, mb: 2}}>
+                                    {`Вас толкнули!`}
+                                </Typography>
+                                <img src={pushImg} alt={"push_image"} width={224}
+                                     style={{
+                                         display: "block",
+                                         borderRadius: 12,
+                                         borderColor: "#f0f0f0",
+                                         border: '3px solid #d25b3f',
+                                         boxShadow: '0 0 15px #d25b3f'
+                                     }}/>
+                            </>
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{background: "#29374e", color: "#f0f0f0", justifyContent: 'center'}}>
+                        <Button
+                            onClick={() => {
+                                setIsPushed(false);
+                                resolveRoomFunction(room, myPlayer, myPlayer.coordX, myPlayer.coordY)
+                            }}
+                            sx={{
+                                borderRadius: '12px',
+                                width: '120px',
+                                color: '#f0f0f0',
+                                backgroundColor: '#334871',
+                                fontFamily: 'Roboto, monospace',
+                                fontSize: '100%',
+                                fontWeight: 'bold',
+                                "&:hover": {color: '#ffffff', backgroundColor: '#435881'}
+                            }}
+                        >
+                            Закрыть
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Модальное окно, если победа */}
+                <Dialog
+                    PaperProps={{
+                        sx: {
+                            backgroundColor: 'rgba(35,38,49,0.98)',
+                            color: '#f0f0f0',
+                            position: 'relative',
+                            minWidth: 500,
+                            minHeight: 400
+                        }
+                    }}
+                    open={gameStatus === "won"}>
+                    <DialogContent className="custom-scrollbar" sx={{
+                        background: "#29374e",
+                        color: "#f0f0f0",
+                        borderRadius: "0%",
+                        borderColor: "#29374e",
+                    }}>
+                        <Stack gap={2} alignItems="center">
+                            <>
+                                <Typography sx={{fontSize: 24, fontWeight: 700,}}>
+                                    {`Вы выиграли!`}
+                                </Typography>
+                                <Typography sx={{fontSize: 24, fontWeight: 700,}}>
+                                    {`Ждем вас в следующем сезоне!`}
+                                </Typography>
+                                <img src={characterIcons[myPlayer.character]} alt={myPlayer.character} width={128}
+                                     style={{
+                                         display: "block",
+                                         borderRadius: 100,
+                                         borderColor: "#f0f0f0",
+                                         border: '3px solid #4b8493',
+                                         boxShadow: '0 0 15px #4b8493',
+                                         marginTop: 30
+                                     }}/>
                             </>
                         </Stack>
                     </DialogContent>
@@ -1522,7 +1990,13 @@ export default function GamePageComponent(props) {
                 {/* Модальное окно, если проигрыш */}
                 <Dialog
                     PaperProps={{
-                        sx: {backgroundColor: 'rgba(35,38,49,0.98)', color: '#f0f0f0', position: 'relative'}
+                        sx: {
+                            backgroundColor: 'rgba(35,38,49,0.98)',
+                            color: '#f0f0f0',
+                            position: 'relative',
+                            minWidth: 500,
+                            minHeight: 400
+                        }
                     }}
                     open={gameStatus === "lost"}>
                     <DialogContent className="custom-scrollbar" sx={{
@@ -1530,13 +2004,24 @@ export default function GamePageComponent(props) {
                         color: "#f0f0f0",
                         borderRadius: "0%",
                         borderColor: "#29374e",
-                        minHeight: '200px',
                     }}>
                         <Stack gap={2} alignItems="center">
                             <>
-                                <Typography sx={{fontSize: 24, fontWeight: 700, mb: 2}}>
-                                    {`Вы проиграли! Впрочем, это было даже интересно...`}
+                                <Typography sx={{fontSize: 24, fontWeight: 700,}}>
+                                    {`Вы проиграли!`}
                                 </Typography>
+                                <Typography sx={{fontSize: 24, fontWeight: 700,}}>
+                                    {`Впрочем, это было даже интересно...`}
+                                </Typography>
+                                <img src={characterIcons[myPlayer.character]} alt={myPlayer.character} width={128}
+                                     style={{
+                                         display: "block",
+                                         borderRadius: 100,
+                                         borderColor: "#f0f0f0",
+                                         border: '3px solid #d25b3f',
+                                         boxShadow: '0 0 15px #d25b3f',
+                                         marginTop: 30
+                                     }}/>
                             </>
                         </Stack>
                     </DialogContent>

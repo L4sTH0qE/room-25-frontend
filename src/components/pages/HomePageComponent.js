@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import {Button, Stack} from "@mui/material";
 import {lightBlue} from "@mui/material/colors";
 import {useNavigate} from "react-router-dom";
@@ -6,8 +6,7 @@ import {useNavigate} from "react-router-dom";
 /**
  * Functional component that describes Home page.
  */
-export default function HomePageComponent(props) {
-    const [username, setUsername] = useState("");
+export default function HomePageComponent() {
 
     const navigate = useNavigate();
 
@@ -25,10 +24,6 @@ export default function HomePageComponent(props) {
         console.log("Route to Lobby");
         navigate("/lobby");
     };
-
-    useEffect(() => {
-        setUsername(props.username);
-    }, [props.username]);
 
     return (
         <>
@@ -91,7 +86,7 @@ export default function HomePageComponent(props) {
                             onClick={() => {
                                 onToAbout();
                             }}>
-                            Об игре
+                            О приложении
                         </Button>
                     </Stack>
                 </div>

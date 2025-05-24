@@ -1,4 +1,5 @@
 export class Cell {
-    type;      // string
-    faceUp;    // boolean
+    type;
+    faceUp;
+    vertical;
 }
