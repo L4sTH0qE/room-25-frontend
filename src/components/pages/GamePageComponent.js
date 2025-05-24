@@ -198,6 +198,29 @@ export default function GamePageComponent(props) {
                     }
                 });
 
+                // Подписываемся на топик для передачи действия при PUSH.
+                client.subscribe(`/topic/room/${id}/push-effect`, (message) => {
+                    const roomData = JSON.parse(message.body);
+                    setRoom(roomData);
+                    setArrowInfo({
+                        idx: roomData.controlData.row,
+                        direction: roomData.controlData.orientation
+                    });
+                    setGameStatus(roomData.status);
+                    setKeyFound(roomData.keyFound);
+
+                    if (roomData.currentPhase === 1) {
+                        setIsReady(false);
+                    } else {
+                        setWaitingActions(false);
+                        const curPlayer = roomData.players.find(pl => pl.clientName === roomData.waitingEffect);
+                        if (curPlayer.clientName === props.username) {
+                            roomData.waitingEffect = "";
+                            resolveRoomFunction(roomData, curPlayer, curPlayer.coordX, curPlayer.coordY)
+                        }
+                    }
+                });
+
                 setStompClient(client);
             }, (error) => {
                 console.error(`Error connecting: ${error}`);
@@ -265,16 +288,11 @@ export default function GamePageComponent(props) {
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "MOVE") {
-            if (myPlayer.status === "IMPRISONED") {
-                const availableCells = getImprisonedCells(myPlayer, roomData);
-                if (availableCells.length === 0) {
-                    setNoneDialogOpen(true);
-                } else {
-                    setSelectableCells(availableCells);
-                    setActionRequest({type: actionType, myPlayer});
-                }
+            const availableCells = myPlayer.status === "IMPRISONED" ? getImprisonedCells(myPlayer, roomData) : getMoveCells(myPlayer, roomData);
+            if (availableCells.length === 0) {
+                setNoneDialogOpen(true);
             } else {
-                setSelectableCells(getMoveCells(myPlayer, roomData));
+                setSelectableCells(availableCells);
                 setActionRequest({type: actionType, myPlayer});
             }
         } else if (actionType === "PUSH") {
@@ -391,7 +409,6 @@ export default function GamePageComponent(props) {
                 pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
             );
             newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
-
             resolveRoomFunction(newRoom, p, i, j);
         } else if (actionRequest.type === "PUSH") {
             const p = selectedPlayer;
@@ -400,8 +417,9 @@ export default function GamePageComponent(props) {
                 pl.clientName === p.clientName ? {...pl, coordX: i, coordY: j} : pl
             );
             newRoom.board[i][j] = {...newRoom.board[i][j], faceUp: true};
-
-            /*resolveRoomFunction(newRoom, p, i, j);*/
+            newRoom.waitingEffect = p.clientName;
+            setRoom(newRoom);
+            handlePushEvent(newRoom);
         } else if (actionRequest.type === "SWAP") {
             let newRoom = {...room};
             let x = myPlayer.coordX;
@@ -620,6 +638,20 @@ export default function GamePageComponent(props) {
         goToNextAction(newRoom);
     }
 
+    function handlePushEvent(roomData) {
+        setSelectableCells([]);
+        setSelectablePlayers([]);
+        setLookedCell(null);
+        setLookDialogOpen(false);
+        setNoneDialogOpen(false);
+
+        if (stompClient !== null) {
+            stompClient.send(`/app/room/${id}/push-event`, {},
+                JSON.stringify(roomData),
+            );
+        }
+    }
+
     function goToNextAction(roomData) {
         setSelectableCells([]);
         setSelectablePlayers([]);
@@ -819,7 +851,12 @@ export default function GamePageComponent(props) {
                                                                              setSelectablePlayers([]);
                                                                              let player = selectablePlayers.find(player => player.clientName === playerOnCell.clientName);
                                                                              setSelectedPlayer(player);
-                                                                             setSelectableCells(getMoveCells(myPlayer, room));
+                                                                             const availableCells = getMoveCells(myPlayer, room);
+                                                                             if (availableCells.length === 0) {
+                                                                                 setNoneDialogOpen(true);
+                                                                             } else {
+                                                                                 setSelectableCells(availableCells);
+                                                                             }
                                                                          }
                                                                      }}
                                                         />);
