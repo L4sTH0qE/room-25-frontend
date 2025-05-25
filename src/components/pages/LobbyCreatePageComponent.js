@@ -77,7 +77,7 @@ export default function LobbyCreatePageComponent() {
         console.log("Create lobby request");
         const token = localStorage.getItem('jwtToken');
 
-        const response = await fetch('http://localhost:8080/room', {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/room`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

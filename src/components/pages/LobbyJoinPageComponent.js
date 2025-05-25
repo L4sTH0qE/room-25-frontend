@@ -73,7 +73,7 @@ export default function LobbyJoinPageComponent(props) {
         const token = localStorage.getItem('jwtToken');
 
         try {
-            const response = await fetch(`http://localhost:8080/room/check/${roomId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/room/check/${roomId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -125,13 +125,13 @@ export default function LobbyJoinPageComponent(props) {
             return;
         }
         setCharacterError("");
-        // финальный шаг — можно сразу звать onJoin
+
         console.log("join lobby");
 
         const token = localStorage.getItem('jwtToken');
 
         try {
-            const response = await fetch(`http://localhost:8080/room/join/${roomId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/room/join/${roomId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

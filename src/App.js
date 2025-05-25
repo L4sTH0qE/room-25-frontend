@@ -51,7 +51,7 @@ export default function App(props) {
 
         if (token) {
             // Установите токен в заголовки для последующих запросов
-            fetch('http://localhost:8080/auth/get', {
+            fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/get`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -152,7 +152,7 @@ export default function App(props) {
     async function loginUser(username, password) {
         console.log("Login request");
 
-        const response = await fetch('http://localhost:8080/auth/login', {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -176,7 +176,7 @@ export default function App(props) {
     async function registerUser(username, password) {
         console.log("Register request");
 
-        const response = await fetch('http://localhost:8080/auth/register', {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

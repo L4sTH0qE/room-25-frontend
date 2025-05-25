@@ -179,7 +179,7 @@ export default function GamePageComponent(props) {
 
     useEffect(() => {
         // Создаем SockJS соединение.
-        const socket = new SockJS('http://localhost:8080/portfolio');
+        const socket = new SockJS(`${process.env.REACT_APP_API_BASE_URL}/portfolio`);
 
         // Создаем STOMP клиент.
         const client = Stomp.over(socket);

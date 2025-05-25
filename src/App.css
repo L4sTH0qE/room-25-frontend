@@ -76,6 +76,7 @@ body {
     position: relative;
     min-height: 100vh;
 }
+
 .gamepage-background::before {
     content: "";
     z-index: -1;
