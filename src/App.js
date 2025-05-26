@@ -65,7 +65,6 @@ export default function App(props) {
                     }
                 })
                 .then(data => {
-                    console.log('Protected data:', data);
                     setUsername(data.username);
                     setUserSubmitted(true);
                 })
