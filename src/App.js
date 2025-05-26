@@ -99,6 +99,8 @@ export default function App(props) {
                 setLogIn(false); // close dialog
                 setUserSubmitted(true); // indicate that user authorized
                 setPassword("");
+                setUsernameError("");
+                setPasswordError("");
                 localStorage.setItem('jwtToken', response.token);
             }
         } catch (error) {
@@ -129,6 +131,8 @@ export default function App(props) {
                 setSignUp(false); // close dialog
                 setUserRegistered(true); // indicate that user has registered
                 setPassword("");
+                setUsernameError("");
+                setPasswordError("");
             }
         } catch (error) {
             console.error("Error during registration:", error);
