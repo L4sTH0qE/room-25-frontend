@@ -116,6 +116,8 @@ export default function GamePageComponent(props) {
     const [isDead, setIsDead] = useState(false);
     const [isPushed, setIsPushed] = useState(false);
 
+    const [usedTunnel, setUsedTunnel] = useState(false);
+
     const cellTypeImages = {
         CENTRAL_ROOM: centralRoomImg,
         ROOM_25: room25Img,
@@ -612,15 +614,20 @@ export default function GamePageComponent(props) {
             setRoom(newRoom);
             return;
         } else if (newRoom.board[i][j].type === "TUNNEL_ROOM") {
-            newRoom.players = newRoom.players.map(pl =>
-                pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
-            );
-            let tunnelCells = getTunnelCells(i, j, newRoom);
-            if (tunnelCells.length > 0) {
-                setSelectableCells(tunnelCells);
-                setActionRequest({type: "MOVE", player});
-                setRoom(newRoom);
-                return;
+            if (usedTunnel === true) {
+                setUsedTunnel(false);
+            } else {
+                setUsedTunnel(true);
+                newRoom.players = newRoom.players.map(pl =>
+                    pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
+                );
+                let tunnelCells = getTunnelCells(i, j, newRoom);
+                if (tunnelCells.length > 0) {
+                    setSelectableCells(tunnelCells);
+                    setActionRequest({type: "MOVE", player});
+                    setRoom(newRoom);
+                    return;
+                }
             }
         } else if (newRoom.board[i][j].type === "WHIRLPOOL_ROOM") {
             newRoom.players = newRoom.players.map(pl =>
