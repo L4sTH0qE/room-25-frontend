@@ -103,10 +103,10 @@ export default function App(props) {
             }
         } catch (error) {
             console.error("Error during authorization:", error);
-            if (error.message === "no user found with such username") {
+            if (error.message === "пользователь с таким логином не найден") {
                 setUsernameError("пользователя с таким ником не существует");
                 setPasswordError("")
-            } else if (error.message === "password is incorrect") {
+            } else if (error.message === "неверный пароль") {
                 setUsernameError("");
                 setPasswordError("неверный пароль")
             } else {
@@ -132,7 +132,7 @@ export default function App(props) {
             }
         } catch (error) {
             console.error("Error during registration:", error);
-            if (error.message === "username is already in use") {
+            if (error.message === "логин занят") {
                 setUsernameError("данный ник уже занят");
                 setPasswordError("")
             } else {
