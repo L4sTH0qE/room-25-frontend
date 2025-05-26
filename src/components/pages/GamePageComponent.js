@@ -490,14 +490,12 @@ export default function GamePageComponent(props) {
         return cells;
     }
 
-    function getTunnelCells(player, roomData) {
+    function getTunnelCells(x, y, roomData) {
         const cells = [];
         for (let i = 0; i < 5; i++) {
             for (let j = 0; j < 5; j++) {
-                if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === true) && (roomData.board?.[i]?.[j].type === "TUNNEL_ROOM")) {
-                    if (player.coordX === i && player.coordY === j) {
-                        continue;
-                    }
+                if (i === x && j === y) {
+                } else if (roomData.board?.[i]?.[j] && (roomData.board?.[i]?.[j].faceUp === true) && (roomData.board?.[i]?.[j].type === "TUNNEL_ROOM")) {
                     cells.push({i: i, j: j});
                 }
             }
@@ -617,7 +615,7 @@ export default function GamePageComponent(props) {
             newRoom.players = newRoom.players.map(pl =>
                 pl.clientName === player.clientName ? {...pl, status: "NORMAL"} : pl
             );
-            let tunnelCells = getTunnelCells(player, newRoom);
+            let tunnelCells = getTunnelCells(i, j, newRoom);
             if (tunnelCells.length > 0) {
                 setSelectableCells(tunnelCells);
                 setActionRequest({type: "MOVE", player});
