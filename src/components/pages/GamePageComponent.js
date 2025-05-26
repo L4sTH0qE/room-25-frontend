@@ -386,7 +386,26 @@ export default function GamePageComponent(props) {
         for (let d = 0; d < 4; d++) {
             const nx = player.coordX + dx[d];
             const ny = player.coordY + dy[d];
-            if (roomData.board?.[nx]?.[ny] && !(roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "FLOODED_ROOM")) {
+
+            if (roomData.board?.[nx]?.[ny]) {
+                if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "FLOODED_ROOM") {
+                    continue;
+                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "CORRIDOR_ROOM") {
+                    if (roomData.board?.[nx]?.[ny].vertical) {
+                        if (ny !== player.coordY) {
+                            continue;
+                        }
+                    } else {
+                        if (nx !== player.coordX) {
+                            continue;
+                        }
+                    }
+                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "TORTURE_ROOM") {
+                    if (!roomData.players.some(p => p.coordX === nx && p.coordY === ny)) {
+                        continue;
+                    }
+                }
+
                 if (roomData.board?.[player.coordX]?.[player.coordY].type === "CORRIDOR_ROOM") {
                     if (roomData.board?.[player.coordX]?.[player.coordY].vertical) {
                         if (ny === player.coordY) {
@@ -396,10 +415,6 @@ export default function GamePageComponent(props) {
                         if (ny !== player.coordY) {
                             cells.push({i: nx, j: ny});
                         }
-                    }
-                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "TORTURE_ROOM") {
-                    if (roomData.players.some(p => p.coordX === nx && p.coordY === ny)) {
-                        cells.push({i: nx, j: ny});
                     }
                 } else {
                     cells.push({i: nx, j: ny});
@@ -415,8 +430,39 @@ export default function GamePageComponent(props) {
         for (let d = 0; d < 4; d++) {
             const nx = player.coordX + dx[d];
             const ny = player.coordY + dy[d];
+
             if (roomData.board?.[nx]?.[ny] && (roomData.players.some(p => p.coordX === nx && p.coordY === ny) || (nx === 2 && ny === 2))) {
-                cells.push({i: nx, j: ny});
+                if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "FLOODED_ROOM") {
+                    continue;
+                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "CORRIDOR_ROOM") {
+                    if (roomData.board?.[nx]?.[ny].vertical) {
+                        if (ny !== player.coordY) {
+                            continue;
+                        }
+                    } else {
+                        if (nx !== player.coordX) {
+                            continue;
+                        }
+                    }
+                } else if (roomData.board?.[nx]?.[ny].faceUp === true && roomData.board?.[nx]?.[ny].type === "TORTURE_ROOM") {
+                    if (!roomData.players.some(p => p.coordX === nx && p.coordY === ny)) {
+                        continue;
+                    }
+                }
+
+                if (roomData.board?.[player.coordX]?.[player.coordY].type === "CORRIDOR_ROOM") {
+                    if (roomData.board?.[player.coordX]?.[player.coordY].vertical) {
+                        if (ny === player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    } else {
+                        if (ny !== player.coordY) {
+                            cells.push({i: nx, j: ny});
+                        }
+                    }
+                } else {
+                    cells.push({i: nx, j: ny});
+                }
             }
         }
         return cells;
@@ -831,7 +877,7 @@ export default function GamePageComponent(props) {
                                 alt="token"
                                 style={{
                                     position: 'absolute',
-                                    left: 175 + (room.numberOfPlayers - idx - 1) * 40 + (room.currentTurn === 1 ? 0 : (idx === (room.numberOfPlayers - ((room.currentTurn - 1) % room.numberOfPlayers))) * room.numberOfPlayers * 40 + Math.floor((room.currentTurn - 1) / room.numberOfPlayers) * room.numberOfPlayers * 40),
+                                    left: 175 + (room.numberOfPlayers - idx - 1) * 40 + room.numberOfPlayers * 40 * Math.floor((room.currentTurn - 1 + idx) / room.numberOfPlayers),
                                     top: 60,
                                     width: 40, height: 70,
                                     border: "2px solid #202020",
@@ -1046,7 +1092,7 @@ export default function GamePageComponent(props) {
                                         top: 370 + arrowInfo.idx * 113,
                                         pointerEvents: "none",
                                         zIndex: 30,
-                                        width: 40,
+                                        width: 30,
                                         boxShadow: "0 0 5px #4fc3f7",
                                         border: '1px solid #4fc3f7',
                                         transform: arrowInfo.direction === "LEFT" ? "rotate(270deg)" : "rotate(90deg)",
@@ -1065,7 +1111,7 @@ export default function GamePageComponent(props) {
                                         top: arrowInfo.direction === "UP" ? 890 : 300,
                                         pointerEvents: "none",
                                         zIndex: 30,
-                                        width: 40,
+                                        width: 30,
                                         boxShadow: "0 0 5px #4fc3f7",
                                         border: '1px solid #4fc3f7',
                                         transform:

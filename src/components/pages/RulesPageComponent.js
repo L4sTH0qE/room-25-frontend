@@ -376,7 +376,7 @@ export default function RulesPageComponent() {
                                     my: 2
                                 }}>
                                     <ListItemText
-                                        primary="Ничешл не делать"
+                                        primary="Ничего не делать"
                                         secondary="Одним своим действием вы можете выбрать отсутствие действия. Это позволит вам пропустить ход, если вы не хотите чего-то делать или собираетесь подождать действий остальных игроков."
                                         primaryTypographyProps={{
                                             sx: {
