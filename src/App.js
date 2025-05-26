@@ -233,6 +233,8 @@ export default function App(props) {
                                         setLogIn(false);
                                         setUsername("");
                                         setPassword("");
+                                        setUsernameError("");
+                                        setPasswordError("");
                                     }}
                                 >
                                     <CustomTextField  // Input for username.
@@ -281,6 +283,8 @@ export default function App(props) {
                                         setSignUp(false);
                                         setUsername("");
                                         setPassword("");
+                                        setUsernameError("");
+                                        setPasswordError("");
                                     }}
                                 >
                                     <CustomTextField  // Input for username.
